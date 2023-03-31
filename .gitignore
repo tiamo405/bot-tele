@@ -1,0 +1,14 @@
+__pycache__/
+config.py
+
+#---------------file-----------
+*.pth
+*.jpg
+*.png
+*.csv
+*.json
+*.txt
+*.zip
+*.tar
+*.mp4
+*.mp3
