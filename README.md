@@ -2,6 +2,7 @@
 - Sleep
 - chat bot: simimi
 - xem tu vi
+- xsmb
 # Use
 - Sleep
   ```
@@ -14,6 +15,10 @@
 - Tu vi
   ```
   /tuvi or /horoscope
+  ```
+- Xo so mien Bac
+  ```
+  /xsmb
   ```
 # Install
 - Lib: pip install pyTelegramBotAPI

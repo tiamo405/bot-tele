@@ -5,10 +5,12 @@ import telebot
 import config
 from utils import horoscope, time_sleeps
 from get_api.get_answer_simsimi import get_answer_simsimi
+from get_api.xsmb import xsmb
 from logs.logs import setup_logger 
 
 # logger = setup_logger('logs.log')
 simsimi_log = setup_logger("simsimi.log")
+xsmb_log = setup_logger('xsmb_log.log')
 # tuvi_log = setup_logger('tuvi.log')
 
 BOT_TOKEN = config.BOT_TOKEN
@@ -63,6 +65,13 @@ def Sleep(message) :
     txt = time_sleeps.message_sleep_now(hours= hours, minutes= minutes, meridiems= meridiems)
     bot.reply_to(message, txt)
 
+#---------------------------------------
+# xsmb
+@bot.message_handler(commands=['xsmb'])
+def sign_handler(message):
+    text = xsmb()
+    bot.send_message(message.chat.id, text)
+    xsmb_log.info(text)
 
 # Handles all sent documents and audio files
 @bot.message_handler(content_types=['document', 'audio'])
