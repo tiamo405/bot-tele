@@ -43,8 +43,8 @@ def start_simsimi(message) :
     quess = ' '.join(map(str, (message.text.split()[1:])))
     answer = get_answer_simsimi(quess)
     bot.send_message(message.chat.id, answer.json()['message'])
-    simsimi_log.info("quess : {}".format(quess))
-    simsimi_log.info('answer: ', answer.json()['message'])
+    simsimi_log.info('Quess: {}'.format(quess))
+    simsimi_log.info('Answer: {}'.format(answer.json()['message']))
 
 
 
@@ -59,7 +59,7 @@ def aiMidJourney(message) :
 # Sleep
 @bot.message_handler(commands=['sleep', 'Sleep'])
 def Sleep(message) :
-    hours, minutes, meridiems =  time_sleeps.add_time()
+    hours, minutes, meridiems =  time_sleeps.sleep_times()
     txt = time_sleeps.message_sleep_now(hours= hours, minutes= minutes, meridiems= meridiems)
     bot.reply_to(message, txt)
 

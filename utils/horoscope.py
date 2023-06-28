@@ -5,6 +5,7 @@ import telebot
 import config
 from get_api.get_horoscpoe import get_daily_horoscope
 from logs.logs import setup_logger 
+import logging
 
 logger = setup_logger('logs.log')
 
@@ -22,8 +23,8 @@ def fetch_horoscope(message, sign):
         horoscope_message = f'*Horoscope:* {data["horoscope_data"]}\n*Sign:* {sign}\n*Day:* {data["date"]}'
         bot.send_message(message.chat.id, "Here's your horoscope!")
         bot.send_message(message.chat.id, horoscope_message, parse_mode="Markdown")
-        tuvi_log('sign : {}, day : {}, \n predict : {}'.format(sign, day, horoscope))
+        tuvi_log.info('sign : {}, day : {}, \n predict : {}'.format(sign, day, horoscope_message))
     except :
         bot.send_message(message.chat.id, "Đã xảy ra lỗi, xin thử lại.\n An error has occurred. Please try again.")
-        tuvi_log('sign : {}, day : {}, \n predict : Đã xảy ra lỗi, xin thử lại.\n An error has occurred. Please try again.'.format(sign, day, ))
+        tuvi_log.info('sign : {}, day : {}, \n predict : Đã xảy ra lỗi, xin thử lại.\n An error has occurred. Please try again.'.format(sign, day))
 

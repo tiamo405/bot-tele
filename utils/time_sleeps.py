@@ -2,7 +2,7 @@ import datetime
 
 def chuyen_doi_Am_Pm(hour) :
     meridiem = None
-    if hour <=11 :
+    if hour <=12 :
         meridiem ="AM"
     else :
         hour -= 12
