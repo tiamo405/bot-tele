@@ -20,7 +20,7 @@ def send_welcome(message):
 
 #-------------------------
 # xem bói tử vi cung hoàng đạo  + ngày
-@bot.message_handler(commands=['horoscope', 'tuvi'])
+@bot.message_handler(commands=['horoscope', 'tuvi', 'Tuvi', 'Horoscope'])
 def sign_handler(message):
     text = "What's your zodiac sign?\nChoose one: *Aries*, *Taurus*, *Gemini*, *Cancer,* *Leo*, *Virgo*, *Libra*, *Scorpio*, *Sagittarius*, *Capricorn*, *Aquarius*, and *Pisces*."
     sent_msg = bot.send_message(message.chat.id, text, parse_mode="Markdown")
