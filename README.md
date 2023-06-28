@@ -17,6 +17,11 @@
   ```
 # Install
 - Lib: pip install pyTelegramBotAPI
+- token bot: [guide](https://help.ladipage.vn/form-data/cac-buoc-cai-dat-luu-data/luu-data-ve-telegram/huong-dan-tao-token-va-group-id-o-telegram)
+- create file: config.py
+  ```
+  BOT_TOKEN = "token"
+  ```
 - run
   ```
   python bot.py
