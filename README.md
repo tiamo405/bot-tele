@@ -25,9 +25,22 @@
 - token bot: [guide](https://help.ladipage.vn/form-data/cac-buoc-cai-dat-luu-data/luu-data-ve-telegram/huong-dan-tao-token-va-group-id-o-telegram)
 - create file: config.py
   ```
-  BOT_TOKEN = "token"
+  BOT_TOKEN = ""
+  WEATHER_KEY = ""
+  REMINDER_CHAT_IDS = [] # chứa các id nhóm, cách lấy id nhóm: sau khi add bot xong chạy /getid
+  API_KEY_1TOUCH = "" 
   ```
 - run
   ```
   python app.py
   ```
+
+# Docker
+- build images
+```
+docker build -t tele:0.0.1 .
+```
+- run container
+```
+docker run --restart=always -dit --name tele -v $(pwd):/app  tele:0.0.1
+```
