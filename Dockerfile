@@ -20,5 +20,9 @@ RUN pip install --upgrade pip
 
 # # # Cài đặt các phụ thuộc từ tệp requirements.txt
 RUN pip install -r requirements.txt
+# Sao chép mã nguồn ứng dụng vào thư mục làm việc
+COPY . .
+
+# Lệnh để chạy ứng dụng
 
 CMD ["python", "app.py"]
