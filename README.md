@@ -42,5 +42,5 @@ docker build -t tele:0.0.1 .
 ```
 - run container
 ```
-docker run --restart=always -dit --name tele -v $(pwd):/app  tele:0.0.1
+docker run --restart=always -dit --ipc=host --net=host --privileged --name tele -v $(pwd):/app  tele:0.0.1
 ```

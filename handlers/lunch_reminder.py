@@ -29,12 +29,12 @@ def schedule_checker(bot):
 
 def register_handlers(bot):
     """Register the lunch reminder scheduler"""
-    # Schedule the reminder for 8:30 AM every day
-    schedule.every().day.at("08:30").do(send_lunch_reminder, bot)
+    # Schedule the reminder for 9:00 AM every day
+    schedule.every().day.at("09:00").do(send_lunch_reminder, bot)
     
     # Start the scheduler in a separate thread
     reminder_thread = threading.Thread(target=schedule_checker, args=(bot,))
     reminder_thread.daemon = True  # Thread will exit when main program exits
     reminder_thread.start()
     
-    print("Lunch reminder scheduled for 8:30 AM on weekdays (Monday-Friday)")
+    print("Lunch reminder scheduled for 9:00 AM on weekdays (Monday-Friday)")
