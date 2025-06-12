@@ -1,8 +1,4 @@
-# fly.toml app configuration file generated for bot-tele on 2025-06-10T14:45:39+07:00
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
-
+# fly.toml
 app = 'bot-tele'
 primary_region = 'sin'
 
@@ -13,7 +9,7 @@ primary_region = 'sin'
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1  # Giữ ít nhất 1 máy chạy
   processes = ['app']
 
 [[vm]]
