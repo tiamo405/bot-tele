@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  bot-tele:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: telegram-bot
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+    volumes:
+      # Mount data folder để lưu trữ dữ liệu người chơi
+      - ./data:/app/data
+      # Mount logs folder để lưu trữ logs
+      - ./logs:/app/logs
+      # Mount config.py nếu bạn muốn thay đổi config mà không rebuild
+      - ./config.py:/app/config.py
+    networks:
+      - bot-network
+    # Tùy chọn: expose port nếu bạn muốn thêm webhook hoặc web interface
+    # ports:
+    #   - "8080:8080"
+    
+    # Health check để kiểm tra bot có hoạt động không
+    # healthcheck:
+    #   test: ["CMD", "python", "-c", "import requests; requests.get('https://api.telegram.org/bot${BOT_TOKEN}/getMe', timeout=10)"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 40s
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  bot-network:
+    driver: bridge
+
+# Tùy chọn: Thêm volume riêng biệt cho data
+volumes:
+  bot-data:
+    driver: local
+  bot-logs:
+    driver: local

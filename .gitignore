@@ -14,4 +14,7 @@ config.py
 *.mp4
 *.mp3
 
+# data folder - user game data
+data/
+
 # file requirements.txt thi se day len github

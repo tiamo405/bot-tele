@@ -1,5 +1,52 @@
-# flyctl launch added from .gitignore
+# Git
+.git
+.gitignore
+README.md
+
+# Docker
+Dockerfile
+docker-compose.yml
+
+# Python
 **/__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
 #---------------file-----------
 **/*.pth
 **/*.jpg
@@ -13,5 +60,15 @@
 **/*.mp4
 **/*.mp3
 
-# file requirements.txt thi se day len github
+# Logs (sẽ được mount từ host)
+*.log
+logs/
+
+# Data files (sẽ được mount từ host)
+data/
+
+# Fly.io
 fly.toml
+
+# Config (nếu muốn mount riêng)
+# config.py
