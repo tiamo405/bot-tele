@@ -38,7 +38,7 @@
 # Docker
 - build images
 ```
-docker build -t tele:0.0.1 .
+docker build -t tele:latest .
 ```
 - run container
 ```
@@ -47,5 +47,6 @@ docker run --restart=always -dit --ipc=host --net=host --privileged --name tele 
 
 # Docker compose
 ```sh
+docker compose build --no-cache
 docker compose up -d
 ```

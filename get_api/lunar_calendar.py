@@ -2,6 +2,7 @@ import re
 import requests
 from bs4 import BeautifulSoup
 import json
+from datetime import datetime
 
 def fetch_lich_xemlicham(url: str):
     """
@@ -125,6 +126,63 @@ def lunar_to_solar(day, month, year):
     except Exception as e:
         print(f"Error converting lunar to solar: {e}")
         return None
+
+def get_weekday_vietnamese(day, month, year):
+    """
+    Tính thứ trong tuần bằng tiếng Việt
+    Args:
+        day (int): Ngày
+        month (int): Tháng  
+        year (int): Năm
+    Returns:
+        str: Thứ trong tuần bằng tiếng Việt
+    """
+    try:
+        date_obj = datetime(year, month, day)
+        weekday = date_obj.weekday()  # 0=Monday, 6=Sunday
+        
+        vietnamese_weekdays = {
+            0: "Thứ Hai",
+            1: "Thứ Ba", 
+            2: "Thứ Tư",
+            3: "Thứ Năm",
+            4: "Thứ Sáu",
+            5: "Thứ Bảy",
+            6: "Chủ Nhật"
+        }
+        
+        return vietnamese_weekdays[weekday]
+    except Exception as e:
+        print(f"Error calculating weekday: {e}")
+        return "Không xác định"
+
+def get_weekday_emoji(day, month, year):
+    """
+    Lấy emoji cho thứ trong tuần
+    Args:
+        day (int): Ngày
+        month (int): Tháng
+        year (int): Năm  
+    Returns:
+        str: Emoji tương ứng với thứ
+    """
+    try:
+        date_obj = datetime(year, month, day)
+        weekday = date_obj.weekday()
+        
+        weekday_emojis = {
+            0: "📅",  # Thứ Hai
+            1: "📆",  # Thứ Ba
+            2: "🗓️",  # Thứ Tư
+            3: "📋",  # Thứ Năm
+            4: "🎉",  # Thứ Sáu
+            5: "🌟",  # Thứ Bảy
+            6: "☀️"   # Chủ Nhật
+        }
+        
+        return weekday_emojis[weekday]
+    except:
+        return "📅"
 
 # Ví dụ dùng:
 if __name__ == "__main__":

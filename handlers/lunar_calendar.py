@@ -2,7 +2,7 @@ import os, sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 from logs.logs import setup_logger 
-from get_api.lunar_calendar import solar_to_lunar, lunar_to_solar
+from get_api.lunar_calendar import solar_to_lunar, lunar_to_solar, get_weekday_vietnamese, get_weekday_emoji
 from datetime import datetime
 import re
 
@@ -40,11 +40,17 @@ def register_handlers(bot):
                 result = solar_to_lunar(today.day, today.month, today.year)
                 
                 if result:
+                    # Tính thứ (chỉ cần tính 1 lần vì cùng ngày)
+                    weekday = get_weekday_vietnamese(today.day, today.month, today.year)
+                    emoji = get_weekday_emoji(today.day, today.month, today.year)
+                    
                     message = format_conversion_result(
                         f"{today.day:02d}/{today.month:02d}/{today.year}",
                         f"{result['day']:02d}/{result['month']:02d}/{result['year']}",
                         result,
-                        "dương sang âm lịch"
+                        "dương sang âm lịch",
+                        weekday,
+                        emoji
                     )
                     bot.edit_message_text(
                         message,
@@ -124,16 +130,34 @@ def register_handlers(bot):
                 result = solar_to_lunar(day, month, year)
                 conversion_text = "dương lịch sang âm lịch"
                 input_date = f"{day:02d}/{month:02d}/{year}"
-                output_date = f"{result['day']:02d}/{result['month']:02d}/{result['year']}" if result else None
+                
+                if result:
+                    output_date = f"{result['day']:02d}/{result['month']:02d}/{result['year']}"
+                    # Tính thứ (chỉ cần tính 1 lần)
+                    weekday = get_weekday_vietnamese(day, month, year)
+                    emoji = get_weekday_emoji(day, month, year)
+                else:
+                    output_date = None
+                    weekday = emoji = None
+                    
             else:  # lunar_to_solar
                 result = lunar_to_solar(day, month, year)
                 conversion_text = "âm lịch sang dương lịch"
                 input_date = f"{day:02d}/{month:02d}/{year}"
-                output_date = f"{result['day']:02d}/{result['month']:02d}/{result['year']}" if result else None
+                
+                if result:
+                    output_date = f"{result['day']:02d}/{result['month']:02d}/{result['year']}"
+                    # Tính thứ (chỉ cần tính 1 lần)
+                    weekday = get_weekday_vietnamese(result['day'], result['month'], result['year'])
+                    emoji = get_weekday_emoji(result['day'], result['month'], result['year'])
+                else:
+                    output_date = None
+                    weekday = emoji = None
             
             if result:
                 response_message = format_conversion_result(
-                    input_date, output_date, result, conversion_text
+                    input_date, output_date, result, conversion_text,
+                    weekday, emoji
                 )
                 
                 # Thêm nút chuyển đổi lại
@@ -229,20 +253,28 @@ def validate_date(day, month, year):
     except:
         return False
 
-def format_conversion_result(input_date, output_date, result, conversion_type):
+def format_conversion_result(input_date, output_date, result, conversion_type, 
+                           weekday=None, emoji=None):
     """Format kết quả chuyển đổi thành message đẹp"""
-    message = f"✅ **KẾT QUẢ CHUYỂN ĐỔI** ✅\n\n"
+    message = "✅ **KẾT QUẢ CHUYỂN ĐỔI** ✅\n\n"
+    
+    # Thêm thông tin thứ (chung cho cả hai ngày)
+    weekday_info = ""
+    if weekday and emoji:
+        weekday_info = f" ({emoji} {weekday})"
     
     if "dương lịch sang âm lịch" in conversion_type:
-        message += f"📅 **Dương lịch:** {input_date}\n"
+        # Dương → Âm
+        message += f"📅 **Dương lịch:** {input_date}{weekday_info}\n"
         message += f"🌙 **Âm lịch:** {output_date}\n\n"
     else:
-        message += f"🌙 **Âm lịch:** {input_date}\n"
+        # Âm → Dương  
+        message += f"🌙 **Âm lịch:** {input_date}{weekday_info}\n"
         message += f"📅 **Dương lịch:** {output_date}\n\n"
     
     # Thêm thông tin can chi nếu có
-    if result.get('heavenlyStems') and result.get('earthlyBranches'):
-        message += f"🎋 **Can Chi:** {result['heavenlyStems']} {result['earthlyBranches']}\n"
+    if result.get('heavenlyStem') and result.get('earthlyBranch'):
+        message += f"🎋 **Can Chi:** {result['heavenlyStem']} {result['earthlyBranch']}\n"
     
     if result.get('sexagenaryCycle'):
         message += f"🗓️ **Năm:** {result['sexagenaryCycle']}\n"
