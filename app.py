@@ -1,6 +1,6 @@
 from telebot import TeleBot
 import config
-from handlers import start, help, horoscope, time_sleep, simsimi, catfact, weather, lunch_reminder, xsmb, taixiu
+from handlers import start, help, horoscope, time_sleep, simsimi, catfact, weather, lunch_reminder, xsmb, taixiu, lunar_calendar
 
 # Khởi tạo bot
 bot = TeleBot(config.BOT_TOKEN)
@@ -16,6 +16,7 @@ weather.register_handlers(bot)
 lunch_reminder.register_handlers(bot)
 xsmb.register_handlers(bot)
 taixiu.register_handlers(bot)
+lunar_calendar.register_handlers(bot)
 
 @bot.message_handler(commands=["getid"])
 def handle_get_id(message):
