@@ -48,7 +48,7 @@ def register_handlers(bot):
                         f"{today.day:02d}/{today.month:02d}/{today.year}",
                         f"{result['day']:02d}/{result['month']:02d}/{result['year']}",
                         result,
-                        "dương sang âm lịch",
+                        "dương lịch sang âm lịch",
                         weekday,
                         emoji
                     )

@@ -4,6 +4,10 @@
 - xem tu vi
 - xsmb
 # Use
+- help
+  ```
+    /help
+  ```
 - Sleep
   ```
   /sleep or /Sleep
@@ -19,6 +23,16 @@
 - Xo so mien Bac
   ```
   /xsmb
+  ```
+- convert lunar <-> solar
+  ```
+  /lunar
+  ```
+- linh tinh
+  ```
+  /catfact 
+  /weather (HN)
+  /taixiu
   ```
 # Install
 - Lib: pip install pyTelegramBotAPI
