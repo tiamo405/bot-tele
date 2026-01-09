@@ -1,8 +1,7 @@
 import schedule
-import time
-import threading
 import config
 from datetime import datetime
+from utils.scheduler import start_scheduler
 
 def get_days_to_tet():
     """Calculate days remaining until Lunar New Year"""
@@ -40,38 +39,12 @@ def send_tet_reminder(bot):
         except Exception as e:
             print(f"Failed to send Tet reminder to {chat_id}: {e}")
 
-def handle_tet_command(message, bot):
-    """Handle /tet command to show days until Lunar New Year"""
-    days_remaining = get_days_to_tet()
-    
-    if days_remaining > 0:
-        message_text = f"🎊 Chỉ còn {days_remaining} ngày nữa là đến Tết Âm Lịch 2026! 🎊"
-    elif days_remaining == 0:
-        message_text = "🎉 Hôm nay là Tết Âm Lịch! Chúc mừng năm mới! 🎉"
-    else:
-        message_text = f"🎊 Tết Âm Lịch đã qua {abs(days_remaining)} ngày rồi! 🎊"
-    
-    bot.reply_to(message, message_text)
-
-def schedule_checker(bot):
-    """Function that runs in a separate thread to check schedules"""
-    while True:
-        schedule.run_pending()
-        time.sleep(60)  # Check every minute
-
 def register_handlers(bot):
-    """Register the Tet reminder scheduler and command handler"""
-    # Register /tet command handler
-    @bot.message_handler(commands=['tet'])
-    def tet_command(message):
-        handle_tet_command(message, bot)
-    
+    """Register the Tet reminder scheduler"""
     # Schedule the reminder for 9:00 AM every day
     schedule.every().day.at("09:00").do(send_tet_reminder, bot)
     
-    # Start the scheduler in a separate thread
-    reminder_thread = threading.Thread(target=schedule_checker, args=(bot,))
-    reminder_thread.daemon = True  # Thread will exit when main program exits
-    reminder_thread.start()
+    # Start the global scheduler thread
+    start_scheduler()
     
-    print("Tet reminder scheduled for 9:00 AM every day")
+    print("Tet reminder scheduled for 9:00 AM on weekdays (Monday-Friday)")
