@@ -41,10 +41,10 @@ def send_tet_reminder(bot):
 
 def register_handlers(bot):
     """Register the Tet reminder scheduler"""
-    # Schedule the reminder for 9:00 AM every day
-    schedule.every().day.at("09:00").do(send_tet_reminder, bot)
+    # Schedule the reminder for 8:30 AM every day
+    schedule.every().day.at("08:30").do(send_tet_reminder, bot)
     
     # Start the global scheduler thread
     start_scheduler()
     
-    print("Tet reminder scheduled for 9:00 AM on weekdays (Monday-Friday)")
+    print("Tet reminder scheduled for 8:30 AM on weekdays (Monday-Friday)")
