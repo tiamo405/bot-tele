@@ -13,7 +13,9 @@ def register_handlers(bot):
             "🌤️ **/weather** - Xem thời tiết hiện tại\n"
             "😴 **/sleep** - Tính giờ ngủ lý tưởng\n"
             "🎰 **/taixiu** - Chơi game tài xỉu vui vẻ\n"
-            "📊 **/taixiustats** - Xem thống kê game tài xỉu\n\n"
+            "📊 **/taixiustats** - Xem thống kê game tài xỉu\n"
+            "📈 **/stock vcb** or **/chungkhoan vcb** or **/chung vcb** or **/ck vcb** - Xem giá chứng khoán\n"
+            "📊 **/stockwatch** or **/theodoick** or **/ckwatch** - Theo dõi giá chứng khoán\n\n"
             "🗓️ **CHUYỂN ĐỔI LỊCH:**\n"
             "• 🌞 Dương lịch → Âm lịch\n"
             "• 🌙 Âm lịch → Dương lịch\n"
@@ -24,6 +26,11 @@ def register_handlers(bot):
             "• Chọn TÀI (11-18) hoặc XỈU (3-10)\n"
             "• Đặt cược và thử vận may!\n"
             "• Thắng = nhận điểm, thua = mất điểm\n\n"
+            "📈 **CHỨNG KHOÁN:**\n"
+            "• Xem giá: `/stock VCB`\n"
+            "• Hiển thị giá trần, sàn, tham chiếu, hiện tại\n"
+            "• Thêm/xóa mã theo dõi: `/stockwatch`\n"
+            "• Nhận thông báo giá mỗi 5 phút (T2-T6, 9h-15h)\n\n"
             "✨ **Chúc bạn sử dụng bot vui vẻ!**"
         )
         bot.reply_to(message, help_text, parse_mode="Markdown")

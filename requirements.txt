@@ -2,3 +2,8 @@ pyTelegramBotAPI
 requests
 schedule
 beautifulsoup4
+lxml
+pandas
+vnstock
+packaging
+ipython
