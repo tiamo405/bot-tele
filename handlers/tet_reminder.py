@@ -23,7 +23,7 @@ def send_tet_reminder(bot):
     
     # Prepare message based on days remaining
     if days_remaining > 0:
-        message = f"🎊 Chỉ còn {days_remaining} ngày nữa là đến Tết Âm Lịch 2026! 🎊"
+        message = f"🎊 Chỉ còn {days_remaining} ngày nữa là đến Tết Âm Lịch 2026! 🎊 \n Chỉ còn {days_remaining - 3} ngày nữa là được nghỉ"
     else:
         # After Tet has passed , break no message
         return

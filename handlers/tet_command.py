@@ -16,7 +16,7 @@ def register_handlers(bot):
         days_remaining = get_days_to_tet()
         
         if days_remaining > 0:
-            message_text = f"🎊 Chỉ còn {days_remaining} ngày nữa là đến Tết Âm Lịch 2026! 🎊"
+            message_text = f"🎊 Chỉ còn {days_remaining} ngày nữa là đến Tết Âm Lịch 2026! 🎊 \n Còn {days_remaining - 3} ngày nữa là được nghỉ lễ "
         elif days_remaining == 0:
             message_text = "🎉 Hôm nay là Tết Âm Lịch! Chúc mừng năm mới! 🎉"
         else:
