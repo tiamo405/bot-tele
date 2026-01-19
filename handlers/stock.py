@@ -50,11 +50,15 @@ def format_price(price):
 def get_color_indicator(color):
     """Lấy emoji chấm màu theo trạng thái"""
     if color == "green":
-        return "🟢"
+        return "🟢"  # Tăng giá
     elif color == "red":
-        return "🔴"
+        return "🔴"  # Giảm giá
+    elif color == "purple":
+        return "🟣"  # Giá trần hoặc gần trần
+    elif color == "cyan":
+        return "🔵"  # Giá sàn hoặc gần sàn
     else:
-        return "🟡"
+        return "🟡"  # Giá tham chiếu
 
 def send_stock_notification(bot):
     """Gửi thông báo giá chứng khoán cho các user đã đăng ký"""
@@ -64,8 +68,17 @@ def send_stock_notification(bot):
     if now.weekday() > 4:  # Saturday or Sunday
         return
     
-    # Kiểm tra giờ (9h-15h)
-    if now.hour < 9 or now.hour >= 15:
+    # Kiểm tra giờ giao dịch (9h-11h45 sáng, 13h15-15h chiều)
+    hour = now.hour
+    minute = now.minute
+    
+    # Sáng: 9:00 - 11:45
+    morning_session = (hour == 9 or hour == 10 or (hour == 11 and minute <= 45))
+    
+    # Chiều: 13:15 - 15:00
+    afternoon_session = ((hour == 13 and minute >= 15) or hour == 14)
+    
+    if not (morning_session or afternoon_session):
         return
     
     subscriptions = load_subscriptions()
@@ -80,8 +93,10 @@ def send_stock_notification(bot):
             info = get_stock_info(symbol)
             if info:
                 current_price = format_price(info['current_price'])
+                change_sign = "+" if info['change_percent'] >= 0 else ""
                 message_parts.append(
-                    f"{get_color_indicator(info['color'])} **{info['symbol']}**: {current_price} VNĐ"
+                    f"{get_color_indicator(info['color'])} **{info['symbol']}**: {current_price} VNĐ "
+                    f"({change_sign}{info['change_percent']:.2f}%)"
                 )
         
         if len(message_parts) > 1:
@@ -366,7 +381,7 @@ def register_handlers(bot):
         bot.answer_callback_query(call.id)
     
     # Đăng ký scheduler để gửi thông báo mỗi 5 phút
-    schedule.every(5).minutes.do(send_stock_notification, bot=bot)
+    schedule.every(2).minutes.do(send_stock_notification, bot=bot)
     
     # Khởi động scheduler
     start_scheduler()
