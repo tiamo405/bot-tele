@@ -41,18 +41,23 @@
                        # Bot tự động gửi giá mỗi 5 phút (T2-T6, 9h-15h)
   ```
 # Install
-- Lib: pip install pyTelegramBotAPI
-- token bot: [guide](https://help.ladipage.vn/form-data/cac-buoc-cai-dat-luu-data/luu-data-ve-telegram/huong-dan-tao-token-va-group-id-o-telegram)
-- create file: config.py
+- Install dependencies:
+  ```bash
+  pip install -r requirements.txt
   ```
-  BOT_TOKEN = ""
-  WEATHER_KEY = ""
-  REMINDER_CHAT_IDS = []
-  REMINDER_CHAT_IDS_BADMINTON = []
-  REMINDER_CHAT_IDS_TET = []  # Chat IDs for Tet reminders
+- Token bot: [guide](https://help.ladipage.vn/form-data/cac-buoc-cai-dat-luu-data/luu-data-ve-telegram/huong-dan-tao-token-va-group-id-o-telegram)
+- Create file `.env` (copy from `.env.example` if available):
+  ```env
+  BOT_TOKEN = "your_bot_token_here"
+  WEATHER_KEY = "your_weather_api_key_here"
+  REMINDER_CHAT_IDS = [id]
+  REMINDER_CHAT_IDS_BADMINTON = [id]
+  REMINDER_CHAT_IDS_TET = [id]
+  API_KEY_1TOUCH = "your_1touch_api_key_here"
   ```
-- run
-  ```
+  **Note:** File `.env` chứa thông tin nhạy cảm, không commit lên git
+- Run:
+  ```bash
   python app.py
   ```
 

@@ -7,3 +7,4 @@ pandas
 vnstock
 packaging
 ipython
+python-dotenv
