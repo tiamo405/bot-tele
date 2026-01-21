@@ -6,7 +6,7 @@ import json
 import schedule
 from datetime import datetime
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
-from get_api.stock import get_stock_info
+from get_api.stock import get_stock_info, get_stock_info_list
 from logs.logs import setup_logger
 from utils.scheduler import start_scheduler
 
@@ -89,15 +89,18 @@ def send_stock_notification(bot):
             
         message_parts = ["📊 **CẬP NHẬT GIÁ CHỨNG KHOÁN** 📊\n"]
         
-        for symbol in symbols:
-            info = get_stock_info(symbol)
-            if info:
-                current_price = format_price(info['current_price'])
-                change_sign = "+" if info['change_percent'] >= 0 else ""
-                message_parts.append(
-                    f"{get_color_indicator(info['color'])} **{info['symbol']}**: {current_price} VNĐ "
-                    f"({change_sign}{info['change_percent']:.2f}%)"
-                )
+        # Lấy thông tin tất cả mã cùng lúc
+        stocks_info = get_stock_info_list(symbols)
+        if stocks_info:
+            for symbol in symbols:
+                info = stocks_info.get(symbol)
+                if info:
+                    current_price = format_price(info['current_price'])
+                    change_sign = "+" if info['change_percent'] >= 0 else ""
+                    message_parts.append(
+                        f"{get_color_indicator(info['color'])} **{info['symbol']}**: {current_price} VNĐ "
+                        f"({change_sign}{info['change_percent']:.2f}%)"
+                    )
         
         if len(message_parts) > 1:
             try:
@@ -362,15 +365,18 @@ def register_handlers(bot):
         
         message_parts = ["📋 **DANH SÁCH ĐANG THEO DÕI** 📋\n"]
         
-        for symbol in current_symbols:
-            info = get_stock_info(symbol)
-            if info:
-                current_price = format_price(info['current_price'])
-                change_sign = "+" if info['change_percent'] >= 0 else ""
-                message_parts.append(
-                    f"{get_color_indicator(info['color'])} **{symbol}**: "
-                    f"{current_price} VNĐ ({change_sign}{info['change_percent']:.2f}%)"
-                )
+        # Lấy thông tin tất cả mã cùng lúc
+        stocks_info = get_stock_info_list(current_symbols)
+        if stocks_info:
+            for symbol in current_symbols:
+                info = stocks_info.get(symbol)
+                if info:
+                    current_price = format_price(info['current_price'])
+                    change_sign = "+" if info['change_percent'] >= 0 else ""
+                    message_parts.append(
+                        f"{get_color_indicator(info['color'])} **{symbol}**: "
+                        f"{current_price} VNĐ ({change_sign}{info['change_percent']:.2f}%)"
+                    )
         
         bot.edit_message_text(
             chat_id=call.message.chat.id,

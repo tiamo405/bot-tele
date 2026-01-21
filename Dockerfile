@@ -1,5 +1,8 @@
 FROM python:3.10-slim
 
+# Tắt Python buffering để thấy logs ngay lập tức
+ENV PYTHONUNBUFFERED=1
+
 # # Thiết lập thư mục làm việc
 WORKDIR /app
 

@@ -18,3 +18,16 @@
 2026-01-14 12:13:01,428 stock.py:389	 INFO: Stock handlers registered successfully
 2026-01-16 14:46:39,891 stock.py:110	 ERROR: Error sending notification to 5427391210: HTTPSConnectionPool(host='api.telegram.org', port=443): Read timed out. (read timeout=30)
 2026-01-16 14:47:24,630 stock.py:110	 ERROR: Error sending notification to 7341595646: HTTPSConnectionPool(host='api.telegram.org', port=443): Max retries exceeded with url: /bot6462237190:AAGovc3tzX8ca1qgAQaUfp5lCh78tpeFKEw/sendMessage?chat_id=7341595646&text=%F0%9F%93%8A+%2A%2AC%E1%BA%ACP+NH%E1%BA%ACT+GI%C3%81+CH%E1%BB%A8NG+KHO%C3%81N%2A%2A+%F0%9F%93%8A%0A%0A%F0%9F%94%B4+%2A%2AVGI%2A%2A%3A+122%2C900+VN%C4%90+%28-3.15%25%29%0A%F0%9F%94%B4+%2A%2AVTK%2A%2A%3A+65%2C500+VN%C4%90+%28-5.48%25%29%0A%F0%9F%94%B4+%2A%2AVTP%2A%2A%3A+122%2C000+VN%C4%90+%28-5.35%25%29%0A%F0%9F%9F%A2+%2A%2AVHM%2A%2A%3A+124%2C100+VN%C4%90+%28%2B3.42%25%29%0A%F0%9F%9F%A2+%2A%2AMFS%2A%2A%3A+47%2C000+VN%C4%90+%28%2B11.37%25%29%0A%F0%9F%94%B4+%2A%2ADCM%2A%2A%3A+35%2C200+VN%C4%90+%28-1.40%25%29%0A%F0%9F%9F%A2+%2A%2APLX%2A%2A%3A+52%2C000+VN%C4%90+%28%2B0.39%25%29%0A%F0%9F%94%B4+%2A%2APVS%2A%2A%3A+38%2C500+VN%C4%90+%28-3.02%25%29%0A%F0%9F%94%B4+%2A%2AGVR%2A%2A%3A+35%2C900+VN%C4%90+%28-3.88%25%29%0A%F0%9F%94%B4+%2A%2AANV%2A%2A%3A+26%2C250+VN%C4%90+%28-0.57%25%29%0A%F0%9F%94%B4+%2A%2ABSI%2A%2A%3A+41%2C000+VN%C4%90+%28-0.73%25%29%0A%F0%9F%94%B4+%2A%2ACII%2A%2A%3A+18%2C650+VN%C4%90+%28-2.10%25%29%0A%F0%9F%9F%A2+%2A%2AVJC%2A%2A%3A+184%2C000+VN%C4%90+%28%2B1.94%25%29%0A%F0%9F%9F%A2+%2A%2AVRE%2A%2A%3A+32%2C000+VN%C4%90+%28%2B1.75%25%29%0A%F0%9F%9F%A2+%2A%2AVIC%2A%2A%3A+159%2C900+VN%C4%90+%28%2B4.51%25%29%0A%F0%9F%9F%A2+%2A%2AVPL%2A%2A%3A+93%2C000+VN%C4%90+%28%2B0.76%25%29%0A%F0%9F%94%B4+%2A%2ACTR%2A%2A%3A+102%2C600+VN%C4%90+%28-4.11%25%29%0A%F0%9F%9F%A2+%2A%2AHCM%2A%2A%3A+26%2C500+VN%C4%90+%28%2B1.73%25%29%0A%F0%9F%94%B4+%2A%2AVIX%2A%2A%3A+24%2C700+VN%C4%90+%28-1.59%25%29&parse_mode=Markdown (Caused by NewConnectionError("HTTPSConnection(host='api.telegram.org', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable"))
+2026-01-20 14:44:32,620 stock.py:389	 INFO: Stock handlers registered successfully
+2026-01-20 14:50:42,298 stock.py:390	 INFO: Stock handlers registered successfully
+2026-01-20 15:03:41,188 stock.py:390	 INFO: Stock handlers registered successfully
+2026-01-20 15:13:34,421 stock.py:390	 INFO: Stock handlers registered successfully
+2026-01-20 16:29:54,258 stock.py:390	 INFO: Stock handlers registered successfully
+2026-01-20 16:32:06,220 stock.py:390	 INFO: Stock handlers registered successfully
+2026-01-20 16:32:21,783 stock.py:390	 INFO: Stock handlers registered successfully
+2026-01-20 16:43:08,267 stock.py:390	 INFO: Stock handlers registered successfully
+2026-01-21 08:03:17,005 stock.py:395	 INFO: Stock handlers registered successfully
+2026-01-21 08:07:49,237 stock.py:395	 INFO: Stock handlers registered successfully
+2026-01-21 08:21:37,461 stock.py:395	 INFO: Stock handlers registered successfully
+2026-01-21 08:24:26,950 stock.py:395	 INFO: Stock handlers registered successfully
+2026-01-21 08:58:50,357 stock.py:395	 INFO: Stock handlers registered successfully

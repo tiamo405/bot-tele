@@ -68,10 +68,63 @@ def get_stock_info(symbol: str):
         print(f"Error getting stock info for {symbol}: {e}")
         return None
 
+def get_stock_info_list(symbols: list):
+    """
+    Lấy thông tin giá chứng khoán cho nhiều mã
+    
+    Returns:
+        dict: {
+            symbol1: { ... },
+            symbol2: { ... },
+            ...
+        }
+    """
+    stock = Vnstock().stock(symbol="ABC", source="VCI")
+    df = stock.trading.price_board(symbols_list=symbols)
+    result = {}
+    if df is None or df.empty:
+        return None
+    df.columns = ['_'.join(col) for col in df.columns]
+    for _, row in df.iterrows():
+        symbol = row["listing_symbol"]
+        current_price = row.get("match_match_price")
+        reference_price = row["listing_ref_price"]
+        ceiling_price = row["listing_ceiling"]
+        floor_price = row["listing_floor"]
+        
+        # Tính phần trăm thay đổi
+        change_percent = 0
+        color = "yellow"  # Không đổi (bằng giá tham chiếu)
+        
+        if current_price and reference_price:
+            change_percent = ((current_price - reference_price) / reference_price) * 100
+            
+            # Xác định màu theo quy tắc thị trường VN:
+            if current_price >= ceiling_price:
+                color = "purple"  # Giá trần
+            elif current_price <= floor_price:
+                color = "cyan"  # Giá sàn
+            elif current_price > reference_price:
+                color = "green"  # Tăng giá
+            elif current_price < reference_price:
+                color = "red"  # Giảm giá
+            else:
+                color = "yellow"  # Bằng tham chiếu
+
+        result[symbol] = {
+            "symbol": symbol,
+            "ceiling_price": ceiling_price,
+            "floor_price": floor_price,
+            "reference_price": reference_price,
+            "current_price": current_price,
+            "change_percent": change_percent,
+            "color": color
+        }
+    return result
 
 # Example usage
 if __name__ == "__main__":
-    # Test với nhiều mã để xem các màu khác nhau
+    # Test với 1 mã để xem các màu khác nhau
     test_symbols = ["PVC"]
     
     print("=== KIỂM TRA MÀU SẮC CÁC MÃ ===\n")
@@ -88,3 +141,17 @@ if __name__ == "__main__":
             print()
         else:
             print(f"Không lấy được dữ liệu cho {symbol}\n")
+
+    # Test với nhiều mã
+    multi_symbols = ["VCB", "VNM", "HPG", "FPT", "SSI"]
+    multi_info = get_stock_info_list(multi_symbols)
+    print("=== THÔNG TIN NHIỀU MÃ ===\n")
+    for symbol, info in multi_info.items():
+        print(f"Mã: {info['symbol']}")
+        print(f"  Giá trần: {info['ceiling_price']:,}")
+        print(f"  Giá sàn: {info['floor_price']:,}")
+        print(f"  Giá tham chiếu: {info['reference_price']:,}")
+        print(f"  Giá hiện tại: {info['current_price']:,}")
+        print(f"  Thay đổi: {info['change_percent']:.2f}%")
+        print(f"  Màu: {info['color']}")
+        print()
