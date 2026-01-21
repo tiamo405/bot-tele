@@ -1,9 +1,0 @@
-2025-08-04 10:30:10,698 taixiu.py:103	 ERROR: Error in choose_bet_amount: A request to the Telegram API was unsuccessful. Error code: 429. Description: Too Many Requests: retry after 33
-2025-08-04 10:30:12,967 taixiu.py:103	 ERROR: Error in choose_bet_amount: A request to the Telegram API was unsuccessful. Error code: 429. Description: Too Many Requests: retry after 31
-2025-08-04 10:30:13,290 taixiu.py:103	 ERROR: Error in choose_bet_amount: A request to the Telegram API was unsuccessful. Error code: 429. Description: Too Many Requests: retry after 30
-2025-08-04 10:30:14,392 taixiu.py:103	 ERROR: Error in choose_bet_amount: A request to the Telegram API was unsuccessful. Error code: 429. Description: Too Many Requests: retry after 29
-2025-08-04 10:30:17,520 taixiu.py:103	 ERROR: Error in choose_bet_amount: A request to the Telegram API was unsuccessful. Error code: 429. Description: Too Many Requests: retry after 26
-2025-08-04 10:30:23,546 taixiu.py:103	 ERROR: Error in choose_bet_amount: A request to the Telegram API was unsuccessful. Error code: 429. Description: Too Many Requests: retry after 20
-2025-08-04 10:30:25,762 taixiu.py:103	 ERROR: Error in choose_bet_amount: A request to the Telegram API was unsuccessful. Error code: 429. Description: Too Many Requests: retry after 18
-2025-08-04 10:30:34,142 taixiu.py:103	 ERROR: Error in choose_bet_amount: A request to the Telegram API was unsuccessful. Error code: 429. Description: Too Many Requests: retry after 10
-2025-08-04 10:30:35,012 taixiu.py:103	 ERROR: Error in choose_bet_amount: A request to the Telegram API was unsuccessful. Error code: 429. Description: Too Many Requests: retry after 9
