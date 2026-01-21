@@ -62,55 +62,61 @@ def get_color_indicator(color):
 
 def send_stock_notification(bot):
     """Gửi thông báo giá chứng khoán cho các user đã đăng ký"""
-    now = datetime.now()
-    
-    # Kiểm tra thứ (0=Monday, 6=Sunday)
-    if now.weekday() > 4:  # Saturday or Sunday
-        return
-    
-    # Kiểm tra giờ giao dịch (9h-11h45 sáng, 13h15-15h chiều)
-    hour = now.hour
-    minute = now.minute
-    
-    # Sáng: 9:00 - 11:45
-    morning_session = (hour == 9 or hour == 10 or (hour == 11 and minute <= 45))
-    
-    # Chiều: 13:15 - 15:00
-    afternoon_session = ((hour == 13 and minute >= 15) or hour == 14)
-    
-    if not (morning_session or afternoon_session):
-        return
-    
-    subscriptions = load_subscriptions()
-    
-    for chat_id, symbols in subscriptions.items():
-        if not symbols:
-            continue
+    try:
+        now = datetime.now()
+        
+        # Kiểm tra thứ (0=Monday, 6=Sunday)
+        if now.weekday() > 4:  # Saturday or Sunday
+            return
+        
+        # Kiểm tra giờ giao dịch (9h-11h45 sáng, 13h15-15h chiều)
+        hour = now.hour
+        minute = now.minute
+        
+        # Sáng: 9:00 - 11:45
+        morning_session = (hour == 9 or hour == 10 or (hour == 11 and minute <= 45))
+        
+        # Chiều: 13:15 - 15:00
+        afternoon_session = ((hour == 13 and minute >= 15) or hour == 14)
+        
+        if not (morning_session or afternoon_session):
+            return
+        
+        subscriptions = load_subscriptions()
+        
+        for chat_id, symbols in subscriptions.items():
+            if not symbols:
+                continue
+                
+            message_parts = ["📊 **CẬP NHẬT GIÁ CHỨNG KHOÁN** 📊\n"]
             
-        message_parts = ["📊 **CẬP NHẬT GIÁ CHỨNG KHOÁN** 📊\n"]
-        
-        # Lấy thông tin tất cả mã cùng lúc
-        stocks_info = get_stock_info_list(symbols)
-        if stocks_info:
-            for symbol in symbols:
-                info = stocks_info.get(symbol)
-                if info:
-                    current_price = format_price(info['current_price'])
-                    change_sign = "+" if info['change_percent'] >= 0 else ""
-                    message_parts.append(
-                        f"{get_color_indicator(info['color'])} **{info['symbol']}**: {current_price} VNĐ "
-                        f"({change_sign}{info['change_percent']:.2f}%)"
+            # Lấy thông tin tất cả mã cùng lúc
+            stocks_info = get_stock_info_list(symbols)
+            if stocks_info:
+                for symbol in symbols:
+                    info = stocks_info.get(symbol)
+                    if info:
+                        current_price = format_price(info['current_price'])
+                        change_sign = "+" if info['change_percent'] >= 0 else ""
+                        message_parts.append(
+                            f"{get_color_indicator(info['color'])} **{info['symbol']}**: {current_price} VNĐ "
+                            f"({change_sign}{info['change_percent']:.2f}%)"
+                        )
+            
+            if len(message_parts) > 1:
+                try:
+                    bot.send_message(
+                        chat_id=int(chat_id),
+                        text="\n".join(message_parts),
+                        parse_mode="Markdown"
                     )
-        
-        if len(message_parts) > 1:
-            try:
-                bot.send_message(
-                    chat_id=int(chat_id),
-                    text="\n".join(message_parts),
-                    parse_mode="Markdown"
-                )
-            except Exception as e:
-                stock_log.error(f"Error sending notification to {chat_id}: {e}")
+                except Exception as e:
+                    stock_log.error(f"Error sending notification to {chat_id}: {e}")
+    
+    except Exception as e:
+        stock_log.error(f"Critical error in send_stock_notification: {e}")
+        print(f"Critical error in send_stock_notification: {e}")
+        # Không raise exception để tránh crash thread scheduler
 
 def register_handlers(bot):
     """Đăng ký các handlers cho chức năng stock"""

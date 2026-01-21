@@ -79,12 +79,17 @@ def get_stock_info_list(symbols: list):
             ...
         }
     """
-    stock = Vnstock().stock(symbol="ABC", source="VCI")
-    df = stock.trading.price_board(symbols_list=symbols)
-    result = {}
-    if df is None or df.empty:
+    try:
+        stock = Vnstock().stock(symbol="ABC", source="VCI")
+        df = stock.trading.price_board(symbols_list=symbols)
+        result = {}
+        if df is None or df.empty:
+            return None
+        df.columns = ['_'.join(col) for col in df.columns]
+    except Exception as e:
+        print(f"Error getting stock info list: {e}")
         return None
-    df.columns = ['_'.join(col) for col in df.columns]
+    
     for _, row in df.iterrows():
         symbol = row["listing_symbol"]
         current_price = row.get("match_match_price")
@@ -120,6 +125,7 @@ def get_stock_info_list(symbols: list):
             "change_percent": change_percent,
             "color": color
         }
+    
     return result
 
 # Example usage
