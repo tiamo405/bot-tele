@@ -12,3 +12,4 @@ REMINDER_CHAT_IDS_BADMINTON = ast.literal_eval(os.getenv("REMINDER_CHAT_IDS_BADM
 REMINDER_CHAT_IDS_TET = ast.literal_eval(os.getenv("REMINDER_CHAT_IDS_TET", "[]"))
 API_KEY_1TOUCH = os.getenv("API_KEY_1TOUCH")
 VNSTOCK_API_KEY = os.getenv("VNSTOCK_API_KEY")
+SCHEDULE_AUG_CHAT_IDS = ast.literal_eval(os.getenv("SCHEDULE_AUG_CHAT_IDS", "[]"))
