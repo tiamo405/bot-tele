@@ -3,6 +3,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 from logs.logs import setup_logger 
 from get_api.lunar_calendar import solar_to_lunar, lunar_to_solar, get_weekday_vietnamese, get_weekday_emoji
+from utils.log_helper import log_user_action
 from datetime import datetime
 import re
 
@@ -12,6 +13,7 @@ def register_handlers(bot):
     @bot.message_handler(commands=['lunar', 'lichconvert', 'amlich'])
     def lunar_handler(message):
         """Handler chính cho chức năng chuyển đổi lịch"""
+        log_user_action(message, "/lunar", "User requested calendar conversion")
         markup = InlineKeyboardMarkup(row_width=2)
         buttons = [
             InlineKeyboardButton(text="🌞 Dương → Âm", callback_data="convert_solar_to_lunar"),
@@ -43,6 +45,8 @@ def register_handlers(bot):
                     # Tính thứ (chỉ cần tính 1 lần vì cùng ngày)
                     weekday = get_weekday_vietnamese(today.day, today.month, today.year)
                     emoji = get_weekday_emoji(today.day, today.month, today.year)
+                    
+                    lunar_log.info(f"Today conversion: Solar {today.day:02d}/{today.month:02d}/{today.year} -> Lunar {result['day']:02d}/{result['month']:02d}/{result['year']} | User: {call.from_user.username} (ID: {call.from_user.id})")
                     
                     message = format_conversion_result(
                         f"{today.day:02d}/{today.month:02d}/{today.year}",
@@ -159,6 +163,9 @@ def register_handlers(bot):
                     input_date, output_date, result, conversion_text,
                     weekday, emoji
                 )
+                
+                # Log conversion success
+                lunar_log.info(f"Conversion: {input_date} ({conversion_text}) -> {output_date} | User: {message.from_user.username} (ID: {message.from_user.id})")
                 
                 # Thêm nút chuyển đổi lại
                 markup = InlineKeyboardMarkup()

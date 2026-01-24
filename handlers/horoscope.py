@@ -3,12 +3,14 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 from logs.logs import setup_logger 
 from get_api.get_horoscpoe import get_daily_horoscope
+from utils.log_helper import log_user_action
 
 tuvi_log = setup_logger('tuvi.log')
 
 def register_handlers(bot):
     @bot.message_handler(commands=['horoscope', 'tuvi'])
     def sign_handler(message):
+        log_user_action(message, "/horoscope", "User requested horoscope")
         markup = InlineKeyboardMarkup(row_width=3)
         zodiac_signs = [
             "Aries 21/3 - 19/4 (Bạch Dương)", "Taurus 20/4 - 20/5 (Kim Ngưu)", "Gemini 21/5 - 21/6(Sng Tử)", "Cancer 22/6 - 22/7 (Cự Giải)", "Leo 23/7 - 22/8(Sư Tử)", "Virgo 23/8 - 22/9(Xử Nữ)",
@@ -48,5 +50,9 @@ def register_handlers(bot):
         horoscope = get_daily_horoscope(sign, day.upper())
         data = horoscope["data"]
         horoscope_message = f'*Horoscope:* {data["horoscope_data"]}\n*Sign:* {sign}\n*Day:* {data["date"]}'
+        
+        # Log thành công
+        tuvi_log.info(f"Horoscope retrieved: {sign} | Day: {day} | User: {call.from_user.username} (ID: {call.from_user.id})")
+        
         # Gửi kết quả về cho người dùng
         bot.send_message(call.message.chat.id, horoscope_message)

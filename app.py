@@ -1,6 +1,7 @@
 from telebot import TeleBot
 import config
 from handlers import start, help, horoscope, time_sleep, simsimi, catfact, weather, lunch_reminder, xsmb, taixiu, lunar_calendar, badminton_reminder, tet_reminder, tet_command, stock, aug
+from utils.log_helper import log_user_action
 
 # Khởi tạo bot
 bot = TeleBot(config.BOT_TOKEN)
@@ -25,14 +26,17 @@ aug.register_handlers(bot)
 
 @bot.message_handler(commands=["getid"])
 def handle_get_id(message):
+    log_user_action(message, "/getid", f"Chat ID: {message.chat.id}")
     bot.reply_to(message, f"Chat ID của nhóm này là: `{message.chat.id}`", parse_mode="Markdown")
     
 @bot.message_handler(func=lambda msg: True)
 def echo_all(message):
+    log_user_action(message, "unknown_message", f"Text: {message.text}")
     bot.reply_to(message, 'Tôi không hiểu câu lệnh của bạn.')
 
 @bot.message_handler(content_types=['document', 'audio'])
 def handle_docs_audio(message):
+    log_user_action(message, "file_upload", f"Type: {message.content_type}")
     bot.reply_to(message.chat.id, 'gui file del gi day')
 
 

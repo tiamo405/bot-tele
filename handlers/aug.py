@@ -1,9 +1,13 @@
 import os, sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from get_api.aug import get_gold, URL_SJC, URL_DOJI
+from utils.log_helper import log_user_action
+from logs.logs import setup_logger
 import schedule
 from utils.scheduler import start_scheduler
 import config
+
+aug_log = setup_logger('aug.log')
 
 def format_gold_message(gold_data, company_name):
     """Format gold price data into a message"""
@@ -23,11 +27,14 @@ def send_gold_price(bot, chat_id, url, company_name):
         gold_data = get_gold(url)
         message = format_gold_message(gold_data, company_name)
         bot.send_message(chat_id, message, parse_mode="Markdown")
+        aug_log.info(f"Gold price sent: {company_name} | Buy: {gold_data['vang_mieng']['mua']} | Sell: {gold_data['vang_mieng']['ban']} | Chat: {chat_id}")
     except Exception as e:
+        aug_log.error(f"Error sending gold price {company_name} to {chat_id}: {str(e)}")
         bot.send_message(chat_id, f"❌ Lỗi khi lấy giá vàng {company_name}: {str(e)}")
 
 def send_scheduled_gold_prices(bot):
     """Send both SJC and DOJI prices to scheduled chat IDs"""
+    aug_log.info(f"Scheduled gold price update started at 9:15 AM")
     for chat_id in config.SCHEDULE_AUG_CHAT_IDS:
         try:
             # Send SJC price
@@ -39,14 +46,21 @@ def send_scheduled_gold_prices(bot):
             gold_doji = get_gold(URL_DOJI)
             message_doji = format_gold_message(gold_doji, "DOJI")
             bot.send_message(chat_id, message_doji, parse_mode="Markdown")
+            
+            aug_log.info(f"Scheduled gold prices sent successfully to chat {chat_id}")
         except Exception as e:
-            print(f"Error sending scheduled gold prices to {chat_id}: {str(e)}")
+            aug_log.error(f"Error sending scheduled gold prices to {chat_id}: {str(e)}")
 
 def register_handlers(bot):
     @bot.message_handler(commands=['aug'])
     def handle_aug(message):
         # Parse the command arguments
         args = message.text.split()
+        
+        # Log user action
+        company = "both" if len(args) == 1 else args[1].lower()
+        log_user_action(message, "/aug", f"Requested gold price: {company}")
+        aug_log.info(f"Manual gold price request: {company} | User: {message.from_user.username} (ID: {message.from_user.id})")
         
         if len(args) == 1:
             # /aug - send both SJC and DOJI
@@ -60,6 +74,7 @@ def register_handlers(bot):
                 # /aug doji
                 send_gold_price(bot, message.chat.id, URL_DOJI, "DOJI")
             else:
+                aug_log.warning(f"Invalid command: {message.text} | User: {message.from_user.username}")
                 bot.reply_to(message, "❌ Lệnh không hợp lệ. Sử dụng: /aug, /aug sjc, hoặc /aug doji")
         else:
             bot.reply_to(message, "❌ Lệnh không hợp lệ. Sử dụng: /aug, /aug sjc, hoặc /aug doji")

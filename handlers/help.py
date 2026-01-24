@@ -1,6 +1,11 @@
+import os, sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.log_helper import log_user_action
+
 def register_handlers(bot):
     @bot.message_handler(commands=['help'])
     def handle_help(message):
+        log_user_action(message, "/help", "User requested help")
         help_text = (
             "🤖 **DANH SÁCH LỆNH BOT** 🤖\n\n"
             "🚀 **/start** - Bắt đầu tương tác với bot\n"

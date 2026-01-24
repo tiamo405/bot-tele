@@ -3,6 +3,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 from logs.logs import setup_logger 
 from get_api.taixiu import TaiXiuGame
+from utils.log_helper import log_user_action
 import json
 
 taixiu_log = setup_logger('taixiu.log')
@@ -11,6 +12,7 @@ game = TaiXiuGame()
 def register_handlers(bot):
     @bot.message_handler(commands=['taixiu'])
     def taixiu_handler(message):
+        log_user_action(message, "/taixiu", "User started taixiu game")
         user_id = str(message.from_user.id)
         username = message.from_user.username or message.from_user.first_name
         
@@ -117,6 +119,7 @@ def register_handlers(bot):
             result = game.play(user_id, choice, bet_amount)
             
             if not result['success']:
+                taixiu_log.warning(f"Game play failed: {result['message']} | User: {call.from_user.username} (ID: {user_id})")
                 bot.answer_callback_query(call.id, f"❌ {result['message']}")
                 return
             
@@ -125,8 +128,11 @@ def register_handlers(bot):
             total = result['total']
             win = result['win']
             new_points = result['new_points']
-            choice_text = "TÀI" if choice == "tai" else "XỈU"
-            result_text = "TÀI" if total >= 11 else "XỈU"
+            choice_text = "TÀI" if choice == "tai" else "XIỦ"
+            result_text = "TÀI" if total >= 11 else "XIỦ"
+            
+            # Log kết quả game
+            taixiu_log.info(f"Game played: Choice={choice_text} | Bet={bet_amount} | Dice={dice1}+{dice2}+{dice3}={total} | Result={result_text} | Win={win} | NewPoints={new_points} | User: {call.from_user.username} (ID: {user_id})")
             
             win_emoji = "🎉" if win else "😢"
             result_emoji = "📈" if win else "📉"
@@ -231,11 +237,13 @@ def register_handlers(bot):
 
     @bot.message_handler(commands=['taixiustats', 'statx'])
     def show_stats(message):
+        log_user_action(message, "/taixiustats", "User requested taixiu statistics")
         user_id = str(message.from_user.id)
         
         try:
             stats = game.get_user_stats(user_id)
             if not stats:
+                taixiu_log.info(f"Stats requested but user has no games | User: {message.from_user.username} (ID: {user_id})")
                 bot.send_message(
                     message.chat.id,
                     "❌ Bạn chưa chơi game tài xỉu lần nào!\n"
@@ -253,6 +261,8 @@ def register_handlers(bot):
                 f"📈 **Tỷ lệ thắng:** {stats['win_rate']:.1f}%\n\n"
                 f"📅 **Lần chơi cuối:** {stats['last_played'][:10]}"
             )
+            
+            taixiu_log.info(f"Stats displayed: Games={stats['total_games']} | Wins={stats['wins']} | WinRate={stats['win_rate']:.1f}% | Points={stats['points']} | User: {stats['username']} (ID: {user_id})")
             
             bot.send_message(
                 message.chat.id,

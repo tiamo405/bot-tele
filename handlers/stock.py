@@ -9,6 +9,7 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 from get_api.stock import get_stock_info, get_stock_info_list
 from logs.logs import setup_logger
 from utils.scheduler import start_scheduler
+from utils.log_helper import log_user_action
 
 stock_log = setup_logger('stock.log')
 
@@ -128,6 +129,8 @@ def register_handlers(bot):
         try:
             # Parse command
             parts = message.text.strip().split()
+            symbol = parts[1].upper() if len(parts) >= 2 else "N/A"
+            log_user_action(message, "/stock", f"Symbol: {symbol}")
             if len(parts) < 2:
                 bot.send_message(
                     message.chat.id,
@@ -141,12 +144,16 @@ def register_handlers(bot):
             info = get_stock_info(symbol)
             
             if not info:
+                stock_log.warning(f"Stock not found: {symbol} | User: {message.from_user.username} (ID: {message.from_user.id})")
                 bot.send_message(
                     message.chat.id,
                     f"❌ Không tìm thấy thông tin cho mã **{symbol}**",
                     parse_mode="Markdown"
                 )
                 return
+            
+            # Log thành công
+            stock_log.info(f"Stock query: {symbol} | Price: {info['current_price']} | Change: {info['change_percent']:.2f}% | User: {message.from_user.username} (ID: {message.from_user.id})")
             
             # Format thông báo
             color_indicator = get_color_indicator(info['color'])
@@ -179,6 +186,8 @@ def register_handlers(bot):
     @bot.message_handler(commands=['stockwatch', 'theodoick', 'ckwatch'])
     def stock_watch_handler(message):
         """Menu quản lý theo dõi chứng khoán"""
+        log_user_action(message, "/stockwatch", "User opened stock watch menu")
+        stock_log.info(f"Stock watch menu opened | User: {message.from_user.username} (ID: {message.from_user.id})")
         chat_id = str(message.chat.id)
         subscriptions = load_subscriptions()
         current_symbols = subscriptions.get(chat_id, [])
@@ -268,6 +277,10 @@ def register_handlers(bot):
             # Lưu nếu có mã hợp lệ
             if valid_symbols:
                 save_subscriptions(subscriptions)
+                stock_log.info(f"Added stocks: {', '.join(valid_symbols)} | Total: {len(subscriptions[chat_id])} | User: {message.from_user.username} (ID: {message.from_user.id})")
+            
+            if invalid_symbols:
+                stock_log.warning(f"Invalid stocks attempted: {', '.join(invalid_symbols)} | User: {message.from_user.username}")
             
             # Tạo thông báo kết quả
             result_parts = []
@@ -344,6 +357,8 @@ def register_handlers(bot):
         if chat_id in subscriptions and symbol in subscriptions[chat_id]:
             subscriptions[chat_id].remove(symbol)
             save_subscriptions(subscriptions)
+            
+            stock_log.info(f"Stock removed: {symbol} | Remaining: {len(subscriptions[chat_id])} | User: {call.from_user.username} (ID: {call.from_user.id})")
             
             remaining = subscriptions[chat_id]
             symbols_text = ", ".join(remaining) if remaining else "Chưa có mã nào"

@@ -1,10 +1,12 @@
 import os, sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from get_api.weather import get_weather
+from utils.log_helper import log_user_action
 
 def register_handlers(bot):
     @bot.message_handler(commands=['weather'])
     def handle_start(message):
+        log_user_action(message, "/weather", "User requested weather")
         weather = get_weather()
         country = weather["country_code"]
         city = weather["city_name"]

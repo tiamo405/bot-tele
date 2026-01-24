@@ -1,4 +1,7 @@
+import os, sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from datetime import datetime
+from utils.log_helper import log_user_action
 
 def get_days_to_tet():
     """Calculate days remaining until Lunar New Year"""
@@ -13,6 +16,7 @@ def register_handlers(bot):
     @bot.message_handler(commands=['tet'])
     def tet_command(message):
         """Handle /tet command to show days until Lunar New Year"""
+        log_user_action(message, "/tet", "User checked days to Tet")
         days_remaining = get_days_to_tet()
         
         if days_remaining > 0:
