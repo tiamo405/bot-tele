@@ -1,8 +1,5 @@
 import requests
 from bs4 import BeautifulSoup
-import json
-import re
-import demjson3
 
 URL_SJC = "https://giavang.org/trong-nuoc/sjc/"
 URL_DOJI = "https://giavang.org/trong-nuoc/doji/"
