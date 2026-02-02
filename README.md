@@ -62,6 +62,38 @@
   ```
 
 # Docker
+
+## Cách build với Base Image (khuyến nghị - nhanh hơn)
+
+Base image giúp cache các dependencies, chỉ cần build lại khi `requirements.txt` thay đổi.
+
+### Lần đầu tiên:
+1. Build base image (chỉ cần build 1 lần hoặc khi requirements.txt thay đổi):
+```bash
+docker build -f Dockerfile.base -t tele-base:latest .
+```
+
+2. Build app image (nhanh hơn vì đã có base):
+```bash
+docker build --rm --force-rm -t tele:latest .
+```
+
+### Lần sau (khi code thay đổi):
+```bash
+# Chỉ cần build app image (rất nhanh)
+docker build --rm --force-rm -t tele:latest .
+```
+
+### Khi requirements.txt thay đổi:
+```bash
+# Build lại base image
+docker build -f Dockerfile.base -t tele-base:latest .
+
+# Sau đó build app image
+docker build --rm --force-rm -t tele:latest .
+```
+
+## Cách build thông thường (không dùng base image)
 - Build images (tự động xóa intermediate containers)
 ```bash
 docker build --rm --force-rm -t tele:latest .
