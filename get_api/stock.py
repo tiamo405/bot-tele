@@ -29,7 +29,8 @@ def get_stock_info(symbol: str):
         reference_price = row["listing_ref_price"]
         ceiling_price = row["listing_ceiling"]
         floor_price = row["listing_floor"]
-        
+        name_company = row["listing_organ_name"]
+
         # Tính phần trăm thay đổi
         change_percent = 0
         color = "yellow"  # Không đổi (bằng giá tham chiếu)
@@ -57,6 +58,7 @@ def get_stock_info(symbol: str):
 
         return {
             "symbol": row["listing_symbol"],
+            "name_company": name_company,
             "ceiling_price": ceiling_price, # giá trần
             "floor_price": floor_price, # giá sàn
             "reference_price": reference_price, # giá tham chiếu
@@ -138,6 +140,7 @@ if __name__ == "__main__":
         info = get_stock_info(symbol)
         if info:
             print(f"Mã: {info['symbol']}")
+            print(f"  Tên công ty: {info['name_company']}")
             print(f"  Giá trần: {info['ceiling_price']:,}")
             print(f"  Giá sàn: {info['floor_price']:,}")
             print(f"  Giá tham chiếu: {info['reference_price']:,}")

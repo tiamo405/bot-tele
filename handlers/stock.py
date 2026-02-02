@@ -162,6 +162,7 @@ def register_handlers(bot):
             response = (
                 f"📈 **THÔNG TIN CHỨNG KHOÁN** 📈\n\n"
                 f"🏢 Mã: **{info['symbol']}**\n"
+                f"🏢 Tên công ty: **{info['name_company']}**\n\n"
                 f"{color_indicator} Giá hiện tại: **{format_price(info['current_price'])}** VNĐ\n"
                 f"📊 Thay đổi: **{change_sign}{info['change_percent']:.2f}%**\n\n"
                 f"🔺 Giá trần: {format_price(info['ceiling_price'])} VNĐ\n"
