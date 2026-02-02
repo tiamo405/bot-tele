@@ -79,8 +79,8 @@ def register_handlers(bot):
         else:
             bot.reply_to(message, "❌ Lệnh không hợp lệ. Sử dụng: /aug, /aug sjc, hoặc /aug doji")
     
-    # Setup scheduled task at 9:15 AM
+    # Setup scheduled task at 9:00 AM
     if config.SCHEDULE_AUG_CHAT_IDS:
-        schedule.every().day.at("09:15").do(lambda: send_scheduled_gold_prices(bot))
+        schedule.every().day.at("09:00").do(lambda: send_scheduled_gold_prices(bot))
         start_scheduler()
-        print("Scheduled gold price update at 9:15 AM daily")
+        print("Scheduled gold price update at 9:00 AM daily")
