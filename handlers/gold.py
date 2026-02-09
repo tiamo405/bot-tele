@@ -1,6 +1,6 @@
 import os, sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from get_api.aug import get_gold, URL_SJC, URL_DOJI
+from get_api.gold import get_gold, URL_SJC, URL_DOJI
 from utils.log_helper import log_user_action
 from logs.logs import setup_logger
 import schedule
@@ -19,6 +19,8 @@ def format_gold_message(gold_data, company_name):
     message += f"💍 *Vàng nhẫn:*\n"
     message += f"  • Mua vào: {gold_data['vang_nhan']['mua']}\n"
     message += f"  • Bán ra: {gold_data['vang_nhan']['ban']}"
+    # update giá vàng theo usd
+    message += f"\n\n🌐 Giá vàng thế giới (USD/oz): {gold_data.get('gia_usd', 'N/A')}"
     return message
 
 def send_gold_price(bot, chat_id, url, company_name):
@@ -52,32 +54,32 @@ def send_scheduled_gold_prices(bot):
             aug_log.error(f"Error sending scheduled gold prices to {chat_id}: {str(e)}")
 
 def register_handlers(bot):
-    @bot.message_handler(commands=['aug'])
+    @bot.message_handler(commands=['vang'])
     def handle_aug(message):
         # Parse the command arguments
         args = message.text.split()
         
         # Log user action
         company = "both" if len(args) == 1 else args[1].lower()
-        log_user_action(message, "/aug", f"Requested gold price: {company}")
+        log_user_action(message, "/vang", f"Requested gold price: {company}")
         aug_log.info(f"Manual gold price request: {company} | User: {message.from_user.username} (ID: {message.from_user.id})")
         
         if len(args) == 1:
-            # /aug - send both SJC and DOJI
+            # /vang - send both SJC and DOJI
             send_gold_price(bot, message.chat.id, URL_SJC, "SJC")
             send_gold_price(bot, message.chat.id, URL_DOJI, "DOJI")
         elif len(args) == 2:
             if args[1].lower() == 'sjc':
-                # /aug sjc
+                # /vang sjc
                 send_gold_price(bot, message.chat.id, URL_SJC, "SJC")
             elif args[1].lower() == 'doji':
-                # /aug doji
+                # /vang doji
                 send_gold_price(bot, message.chat.id, URL_DOJI, "DOJI")
             else:
                 aug_log.warning(f"Invalid command: {message.text} | User: {message.from_user.username}")
-                bot.reply_to(message, "❌ Lệnh không hợp lệ. Sử dụng: /aug, /aug sjc, hoặc /aug doji")
+                bot.reply_to(message, "❌ Lệnh không hợp lệ. Sử dụng: /vang, /vang sjc, hoặc /vang doji")
         else:
-            bot.reply_to(message, "❌ Lệnh không hợp lệ. Sử dụng: /aug, /aug sjc, hoặc /aug doji")
+            bot.reply_to(message, "❌ Lệnh không hợp lệ. Sử dụng: /vang, /vang sjc, hoặc /vang doji")
     
     # Setup scheduled task at 9:00 AM
     if config.SCHEDULE_AUG_CHAT_IDS:

@@ -21,6 +21,8 @@ def register_handlers(bot):
             "📊 **/taixiustats** - Xem thống kê game tài xỉu\n"
             "📈 **/stock vcb** or **/chungkhoan vcb** or **/chung vcb** or **/ck vcb** - Xem giá chứng khoán\n"
             "📊 **/stockwatch** or **/theodoick** or **/ckwatch** - Theo dõi giá chứng khoán\n\n"
+            "💰 **/vang** - Xem giá vàng\n"
+            "🪙 **/bac** - Xem giá bạc\n\n"
             "🗓️ **CHUYỂN ĐỔI LỊCH:**\n"
             "• 🌞 Dương lịch → Âm lịch\n"
             "• 🌙 Âm lịch → Dương lịch\n"
