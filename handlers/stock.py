@@ -2,64 +2,34 @@ import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import json
 import schedule
 from datetime import datetime
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
-from get_api.stock import get_stock_info, get_stock_info_list
+from get_api.stock import get_stock_info, get_stock_info_list_smart
 from logs.logs import setup_logger
 from utils.scheduler import start_scheduler
 from utils.log_helper import log_user_action
+from utils.json_storage import JSONStorage
+from utils.formatters import format_price, format_percentage, get_stock_color_indicator
 
 stock_log = setup_logger('stock.log')
 
-# File lưu trữ subscriptions
+# File lưu trữ subscriptions - sử dụng JSONStorage
 SUBSCRIPTIONS_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'stock_subscriptions.json')
-
-# Tạo thư mục và file nếu chưa tồn tại
-os.makedirs(os.path.dirname(SUBSCRIPTIONS_FILE), exist_ok=True)
-if not os.path.exists(SUBSCRIPTIONS_FILE):
-    with open(SUBSCRIPTIONS_FILE, 'w', encoding='utf-8') as f:
-        json.dump({}, f)
+storage = JSONStorage(SUBSCRIPTIONS_FILE, default_data={})
 
 def load_subscriptions():
     """Đọc danh sách subscriptions từ file JSON"""
-    try:
-        if os.path.exists(SUBSCRIPTIONS_FILE):
-            with open(SUBSCRIPTIONS_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        return {}
-    except Exception as e:
-        stock_log.error(f"Error loading subscriptions: {e}")
-        return {}
+    return storage.load()
 
 def save_subscriptions(subscriptions):
     """Lưu subscriptions vào file JSON"""
-    try:
-        os.makedirs(os.path.dirname(SUBSCRIPTIONS_FILE), exist_ok=True)
-        with open(SUBSCRIPTIONS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(subscriptions, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        stock_log.error(f"Error saving subscriptions: {e}")
+    return storage.save(subscriptions)
 
-def format_price(price):
-    """Format giá với dấu phẩy phân cách hàng nghìn"""
-    if price is None:
-        return "N/A"
-    return f"{price:,.0f}"
-
+# Sử dụng formatter từ utils
 def get_color_indicator(color):
-    """Lấy emoji chấm màu theo trạng thái"""
-    if color == "green":
-        return "🟢"  # Tăng giá
-    elif color == "red":
-        return "🔴"  # Giảm giá
-    elif color == "purple":
-        return "🟣"  # Giá trần hoặc gần trần
-    elif color == "cyan":
-        return "🔵"  # Giá sàn hoặc gần sàn
-    else:
-        return "🟡"  # Giá tham chiếu
+    """Wrapper cho backward compatibility"""
+    return get_stock_color_indicator(color)
 
 def send_stock_notification(bot):
     """Gửi thông báo giá chứng khoán cho các user đã đăng ký"""
@@ -91,8 +61,8 @@ def send_stock_notification(bot):
                 
             message_parts = ["📊 **CẬP NHẬT GIÁ CHỨNG KHOÁN** 📊\n"]
             
-            # Lấy thông tin tất cả mã cùng lúc
-            stocks_info = get_stock_info_list(symbols)
+            # Lấy thông tin tất cả mã cùng lúc - tự động fallback v2->v1
+            stocks_info = get_stock_info_list_smart(symbols)
             if stocks_info:
                 for symbol in symbols:
                     info = stocks_info.get(symbol)
@@ -141,7 +111,7 @@ def register_handlers(bot):
                 return
             
             symbol = parts[1].upper()
-            info = get_stock_info(symbol)
+            info = get_stock_info_list_smart([symbol]).get(symbol)
             
             if not info:
                 stock_log.warning(f"Stock not found: {symbol} | User: {message.from_user.username} (ID: {message.from_user.id})")
@@ -377,18 +347,30 @@ def register_handlers(bot):
     @bot.callback_query_handler(func=lambda call: call.data == "stock_list")
     def stock_list_callback(call):
         """Hiển thị danh sách đang theo dõi"""
+        # Answer callback query NGAY LẬP TỨC để tránh timeout
+        try:
+            bot.answer_callback_query(call.id, "Đang tải dữ liệu...")
+        except:
+            pass  # Bỏ qua nếu callback đã hết hạn
+        
         chat_id = str(call.message.chat.id)
         subscriptions = load_subscriptions()
         current_symbols = subscriptions.get(chat_id, [])
         
         if not current_symbols:
-            bot.answer_callback_query(call.id, "Chưa có mã nào!")
+            bot.edit_message_text(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                text="❌ Chưa có mã nào!",
+                parse_mode="Markdown"
+            )
             return
         
         message_parts = ["📋 **DANH SÁCH ĐANG THEO DÕI** 📋\n"]
         
-        # Lấy thông tin tất cả mã cùng lúc
-        stocks_info = get_stock_info_list(current_symbols)
+        # Sử dụng smart API với fallback v2->v1
+        stocks_info = get_stock_info_list_smart(current_symbols)
+        
         if stocks_info:
             for symbol in current_symbols:
                 info = stocks_info.get(symbol)
@@ -399,14 +381,18 @@ def register_handlers(bot):
                         f"{get_color_indicator(info['color'])} **{symbol}**: "
                         f"{current_price} VNĐ ({change_sign}{info['change_percent']:.2f}%)"
                     )
+        else:
+            message_parts.append("\n⚠️ Không thể tải dữ liệu. Vui lòng thử lại sau.")
         
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text="\n".join(message_parts),
-            parse_mode="Markdown"
-        )
-        bot.answer_callback_query(call.id)
+        try:
+            bot.edit_message_text(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                text="\n".join(message_parts),
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            stock_log.error(f"Error editing message: {e}")
     
     # Đăng ký scheduler để gửi thông báo mỗi 5 phút
     schedule.every(2).minutes.do(send_stock_notification, bot=bot)

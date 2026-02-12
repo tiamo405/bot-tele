@@ -1,37 +1,23 @@
 import json
 import random
 import os
+import sys
 from datetime import datetime
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.json_storage import JSONStorage
 
 class TaiXiuGame:
     def __init__(self):
         self.data_file = os.path.join(os.path.dirname(__file__), '..', 'data', 'taixiu_users.json')
-        self.ensure_data_file()
-    
-    def ensure_data_file(self):
-        """Đảm bảo file dữ liệu tồn tại"""
-        os.makedirs(os.path.dirname(self.data_file), exist_ok=True)
-        if not os.path.exists(self.data_file):
-            with open(self.data_file, 'w', encoding='utf-8') as f:
-                json.dump({}, f, ensure_ascii=False, indent=2)
+        self.storage = JSONStorage(self.data_file, default_data={})
     
     def load_users(self):
         """Load dữ liệu người dùng từ file"""
-        try:
-            with open(self.data_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            return {}
+        return self.storage.load()
     
     def save_users(self, users_data):
         """Lưu dữ liệu người dùng vào file"""
-        try:
-            with open(self.data_file, 'w', encoding='utf-8') as f:
-                json.dump(users_data, f, ensure_ascii=False, indent=2)
-            return True
-        except Exception as e:
-            print(f"Error saving users data: {e}")
-            return False
+        return self.storage.save(users_data)
     
     def get_or_create_user(self, user_id, username):
         """Lấy thông tin người dùng hoặc tạo mới nếu chưa có"""

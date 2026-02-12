@@ -1,5 +1,6 @@
 from telebot import TeleBot
 import config
+import time
 from handlers import gold, start, help, horoscope, time_sleep, simsimi, catfact, weather, lunch_reminder, xsmb, taixiu, lunar_calendar, badminton_reminder, tet_reminder, tet_command, stock, silver
 from utils.log_helper import log_user_action
 
@@ -43,4 +44,12 @@ def handle_docs_audio(message):
 
 if __name__ == '__main__':
     print("Bot đang chạy...")
-    bot.infinity_polling()
+    
+    # Retry logic để xử lý lỗi network
+    while True:
+        try:
+            bot.infinity_polling(timeout=60, long_polling_timeout=60)
+        except Exception as e:
+            print(f"Lỗi polling: {e}")
+            print("Đang thử kết nối lại sau 5 giây...")
+            time.sleep(5)

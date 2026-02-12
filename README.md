@@ -70,37 +70,37 @@ Base image giúp cache các dependencies, chỉ cần build lại khi `requireme
 ### Lần đầu tiên:
 1. Build base image (chỉ cần build 1 lần hoặc khi requirements.txt thay đổi):
 ```bash
-docker build -f Dockerfile.base -t tele-base:latest .
+docker build -f Dockerfile.base -t namtiamo/tele-base:latest .
 ```
 
 2. Build app image (nhanh hơn vì đã có base):
 ```bash
-docker build --rm --force-rm -t tele:latest .
+docker build --rm --force-rm -t namtiamo/tele:latest .
 ```
 
 ### Lần sau (khi code thay đổi):
 ```bash
 # Chỉ cần build app image (rất nhanh)
-docker build --rm --force-rm -t tele:latest .
+docker build --rm --force-rm -t namtiamo/tele:latest .
 ```
 
 ### Khi requirements.txt thay đổi:
 ```bash
 # Build lại base image
-docker build -f Dockerfile.base -t tele-base:latest .
+docker build -f Dockerfile.base -t namtiamo/tele-base:latest .
 
 # Sau đó build app image
-docker build --rm --force-rm -t tele:latest .
+docker build --rm --force-rm -t namtiamo/tele:latest .
 ```
 
 ## Cách build thông thường (không dùng base image)
 - Build images (tự động xóa intermediate containers)
 ```bash
-docker build --rm --force-rm -t tele:latest .
+docker build --rm --force-rm -t namtiamo/tele:latest .
 ```
 - Run container
 ```bash
-docker run --restart=always -dit --ipc=host --net=host --privileged --name tele -v $(pwd):/app  tele:latest
+docker run --restart=always -dit --ipc=host --net=host --privileged --name tele -v $(pwd):/app  namtiamo/tele:latest
 ```
 - Xóa images cũ không dùng (dangling images)
 ```bash
@@ -108,11 +108,8 @@ docker image prune -f
 ```
 
 # Docker compose
-- Build và chạy (rebuild khi code thay đổi)
+- Chạy
 ```bash
-# Build lại image mới (xóa cache)
-docker compose build --no-cache
-
 # Khởi động container
 docker compose up -d
 
@@ -124,9 +121,6 @@ docker logs -f telegram-bot
 ```bash
 # Dừng và xóa containers, networks, volumes
 docker compose down -v
-
-# Build lại image mới
-docker compose build --no-cache
 
 # Khởi động lại
 docker compose up -d
@@ -142,26 +136,4 @@ docker image prune -a -f
 
 # Xóa toàn bộ cache build (tiết kiệm dung lượng)
 docker builder prune -f
-```
-
-- Script build nhanh (build + cleanup tự động)
-```bash
-# Tạo file build.sh
-cat > build.sh << 'EOF'
-#!/bin/bash
-echo "🔨 Building new image..."
-docker compose build --no-cache
-
-echo "🧹 Cleaning up old images..."
-docker image prune -f
-
-echo "🚀 Starting containers..."
-docker compose up -d
-
-echo "✅ Done! Checking logs..."
-docker logs --tail 50 telegram-bot
-EOF
-
-chmod +x build.sh
-./build.sh
 ```

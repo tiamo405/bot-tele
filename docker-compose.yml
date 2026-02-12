@@ -2,9 +2,10 @@ version: '3.8'
 
 services:
   bot-tele:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    image: namtiamo/tele:latest
     container_name: telegram-bot
     restart: unless-stopped
     environment:

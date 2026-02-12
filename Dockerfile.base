@@ -24,4 +24,7 @@ RUN pip install --upgrade pip
 # Cài đặt các phụ thuộc từ tệp requirements.txt
 RUN pip install -r requirements.txt
 
+# Cài đặt vnstock riêng biệt để đảm bảo luôn là phiên bản mới nhất
+
+RUN pip install vnstock --upgrade
 # Layer này sẽ được cache lại và chỉ rebuild khi requirements.txt thay đổi
