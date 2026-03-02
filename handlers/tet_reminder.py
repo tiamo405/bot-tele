@@ -5,7 +5,7 @@ from utils.scheduler import start_scheduler
 
 def get_days_to_tet():
     """Calculate days remaining until Lunar New Year"""
-    tet_date = datetime(2026, 2, 17)
+    tet_date = datetime(2026, 4, 25)
     current_date = datetime.now()
     days_remaining = (tet_date - current_date).days
     return days_remaining
@@ -23,7 +23,7 @@ def send_tet_reminder(bot):
     
     # Prepare message based on days remaining
     if days_remaining > 0:
-        message = f"🎊 Chỉ còn {days_remaining} ngày nữa là đến Tết Âm Lịch 2026! 🎊 \n Chỉ còn {days_remaining - 3} ngày nữa là được nghỉ"
+        message = f"🎊 Chỉ còn {days_remaining} ngày nữa là đến Giỗ tổ Hùng Vương! 🎊 \n Chỉ còn {days_remaining + 5} ngày nữa là được nghỉ 30/4 1/5"
     else:
         # After Tet has passed , break no message
         return
@@ -48,3 +48,10 @@ def register_handlers(bot):
     start_scheduler()
     
     print("Tet reminder scheduled for 8:30 AM on weekdays (Monday-Friday)")
+
+
+if __name__ == "__main__":
+    # For testing purposes, you can run the reminder directly
+    # Note: In production, this will be scheduled by the main app
+    days_remaining = get_days_to_tet()
+    print(f"Days remaining until Gio to Hung Vuong: {days_remaining}")

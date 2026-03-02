@@ -1,7 +1,11 @@
 import os
 import logging
 
-log_dir = os.path.dirname(os.path.realpath(__file__))
+# Lưu log vào /app/bot-logs/ thay vì folder hiện tại
+# Điều này cho phép mount ./bot-logs:/app/bot-logs mà không mất file logs.py
+log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'bot-logs')
+os.makedirs(log_dir, exist_ok=True)  # Tạo folder nếu chưa có
+
 formatter = logging.Formatter('%(asctime)s %(filename)s:%(lineno)d\t %(levelname)s: %(message)s')
 
 

@@ -12,7 +12,7 @@ def send_lunch_reminder(bot):
         return
     
     # Replace with your target chat ID (can be stored in config.py)
-    chat_ids = config.REMINDER_CHAT_IDS  # List of chat IDs to send reminder to
+    chat_ids = config.REMINDER_CHAT_IDS_LUNCH  # List of chat IDs to send reminder to
     
     for chat_id in chat_ids:
         try:
