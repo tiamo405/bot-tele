@@ -77,7 +77,10 @@ docker build -f Dockerfile.base -t namtiamo/tele-base:latest .
 ```bash
 docker build --rm --force-rm -t namtiamo/tele:latest .
 ```
-
+3. Push lên Docker Hub (nếu cần):
+```bash
+docker push namtiamo/tele:latest
+```
 ### Lần sau (khi code thay đổi):
 ```bash
 # Chỉ cần build app image (rất nhanh)
