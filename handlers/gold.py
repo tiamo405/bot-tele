@@ -1,6 +1,6 @@
 import os, sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from get_api.gold import get_gold, URL_SJC, URL_DOJI
+from get_api.gold import get_gold, URL_SJC, URL_DOJI, make_gapi_request, make_alpha_request
 from utils.log_helper import log_user_action
 from logs.logs import setup_logger
 import schedule
@@ -19,8 +19,6 @@ def format_gold_message(gold_data, company_name):
     message += f"💍 *Vàng nhẫn:*\n"
     message += f"  • Mua vào: {gold_data['vang_nhan']['mua']}\n"
     message += f"  • Bán ra: {gold_data['vang_nhan']['ban']}"
-    # update giá vàng theo usd
-    message += f"\n\n🌐 Giá vàng thế giới (USD/oz): {gold_data.get('gia_usd', 'N/A')}"
     return message
 
 def send_gold_price(bot, chat_id, url, company_name):
@@ -80,6 +78,27 @@ def register_handlers(bot):
                 bot.reply_to(message, "❌ Lệnh không hợp lệ. Sử dụng: /vang, /vang sjc, hoặc /vang doji")
         else:
             bot.reply_to(message, "❌ Lệnh không hợp lệ. Sử dụng: /vang, /vang sjc, hoặc /vang doji")
+    
+    @bot.message_handler(commands=['vangtg'])
+    def handle_world_gold(message):
+        """Handle /vangtg command to get world gold price"""
+        log_user_action(message, "/vangtg", "Requested world gold price")
+        aug_log.info(f"World gold price request | User: {message.from_user.username} (ID: {message.from_user.id})")
+        
+        try:
+            price_usd = make_gapi_request() if make_gapi_request() else make_alpha_request()
+            if price_usd:
+                msg = f"🌐 *Giá vàng thế giới*\n\n"
+                msg += f"💵 Giá: *${price_usd}/oz*\n"
+                msg += f"\n_Nguồn: GoldAPI.io_"
+                bot.send_message(message.chat.id, msg, parse_mode="Markdown")
+                aug_log.info(f"World gold price sent: ${price_usd}/oz | Chat: {message.chat.id}")
+            else:
+                bot.send_message(message.chat.id, "❌ Không thể lấy giá vàng thế giới lúc này. Vui lòng thử lại sau.")
+                aug_log.warning(f"Failed to get world gold price | Chat: {message.chat.id}")
+        except Exception as e:
+            aug_log.error(f"Error getting world gold price: {str(e)}")
+            bot.send_message(message.chat.id, f"❌ Lỗi khi lấy giá vàng thế giới: {str(e)}")
     
     # Setup scheduled task at 9:00 AM
     if config.SCHEDULE_AUG_CHAT_IDS:

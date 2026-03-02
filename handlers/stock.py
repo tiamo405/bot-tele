@@ -95,57 +95,83 @@ def register_handlers(bot):
     # Handler 1: Xem giá chứng khoán
     @bot.message_handler(commands=['stock', 'chungkhoan', 'chung', 'ck'])
     def stock_handler(message):
-        """Xem giá chứng khoán: /stock VCB"""
+        """Xem giá chứng khoán: /stock VCB hoặc /stock VCB MSN HPG"""
         try:
-            # Parse command
             parts = message.text.strip().split()
-            symbol = parts[1].upper() if len(parts) >= 2 else "N/A"
-            log_user_action(message, "/stock", f"Symbol: {symbol}")
+
             if len(parts) < 2:
+                log_user_action(message, "/stock", "No symbol provided")
                 bot.send_message(
                     message.chat.id,
                     "❌ Vui lòng nhập mã chứng khoán!\n\n"
-                    "📝 Cách dùng: `/stock VCB`",
+                    "📝 Cách dùng:\n"
+                    "• Một mã: `/ck VCB`\n"
+                    "• Nhiều mã: `/ck VCB MSN HPG`",
                     parse_mode="Markdown"
                 )
                 return
-            
-            symbol = parts[1].upper()
-            info = get_stock_info_list_smart([symbol]).get(symbol)
-            
-            if not info:
-                stock_log.warning(f"Stock not found: {symbol} | User: {message.from_user.username} (ID: {message.from_user.id})")
-                bot.send_message(
-                    message.chat.id,
-                    f"❌ Không tìm thấy thông tin cho mã **{symbol}**",
-                    parse_mode="Markdown"
+
+            symbols = [s.upper() for s in parts[1:]]
+            log_user_action(message, "/stock", f"Symbols: {', '.join(symbols)}")
+
+            # Trường hợp 1 mã: hiển thị chi tiết
+            if len(symbols) == 1:
+                symbol = symbols[0]
+                info = get_stock_info_list_smart([symbol]).get(symbol)
+
+                if not info:
+                    stock_log.warning(f"Stock not found: {symbol} | User: {message.from_user.username} (ID: {message.from_user.id})")
+                    bot.send_message(
+                        message.chat.id,
+                        f"❌ Không tìm thấy thông tin cho mã **{symbol}**",
+                        parse_mode="Markdown"
+                    )
+                    return
+
+                stock_log.info(f"Stock query: {symbol} | Price: {info['current_price']} | Change: {info['change_percent']:.2f}% | User: {message.from_user.username} (ID: {message.from_user.id})")
+
+                color_indicator = get_color_indicator(info['color'])
+                change_sign = "+" if info['change_percent'] >= 0 else ""
+
+                response = (
+                    f"📈 **THÔNG TIN CHỨNG KHOÁN** 📈\n\n"
+                    f"🏢 Mã: **{info['symbol']}**\n"
+                    f"🏢 Tên công ty: **{info['name_company']}**\n\n"
+                    f"{color_indicator} Giá hiện tại: **{format_price(info['current_price'])}** VNĐ\n"
+                    f"📊 Thay đổi: **{change_sign}{info['change_percent']:.2f}%**\n\n"
+                    f"🔺 Giá trần: {format_price(info['ceiling_price'])} VNĐ\n"
+                    f"🔻 Giá sàn: {format_price(info['floor_price'])} VNĐ\n"
+                    f"📌 Giá tham chiếu: {format_price(info['reference_price'])} VNĐ"
                 )
-                return
-            
-            # Log thành công
-            stock_log.info(f"Stock query: {symbol} | Price: {info['current_price']} | Change: {info['change_percent']:.2f}% | User: {message.from_user.username} (ID: {message.from_user.id})")
-            
-            # Format thông báo
-            color_indicator = get_color_indicator(info['color'])
-            change_sign = "+" if info['change_percent'] >= 0 else ""
-            
-            response = (
-                f"📈 **THÔNG TIN CHỨNG KHOÁN** 📈\n\n"
-                f"🏢 Mã: **{info['symbol']}**\n"
-                f"🏢 Tên công ty: **{info['name_company']}**\n\n"
-                f"{color_indicator} Giá hiện tại: **{format_price(info['current_price'])}** VNĐ\n"
-                f"📊 Thay đổi: **{change_sign}{info['change_percent']:.2f}%**\n\n"
-                f"🔺 Giá trần: {format_price(info['ceiling_price'])} VNĐ\n"
-                f"🔻 Giá sàn: {format_price(info['floor_price'])} VNĐ\n"
-                f"📌 Giá tham chiếu: {format_price(info['reference_price'])} VNĐ"
-            )
-            
-            bot.send_message(
-                message.chat.id,
-                response,
-                parse_mode="Markdown"
-            )
-            
+
+                bot.send_message(message.chat.id, response, parse_mode="Markdown")
+
+            # Trường hợp nhiều mã: hiển thị danh sách tóm tắt
+            else:
+                stocks_info = get_stock_info_list_smart(symbols)
+
+                message_parts = ["📊 **THÔNG TIN CHỨNG KHOÁN** 📊\n"]
+                not_found = []
+
+                for symbol in symbols:
+                    info = stocks_info.get(symbol) if stocks_info else None
+                    if info:
+                        change_sign = "+" if info['change_percent'] >= 0 else ""
+                        message_parts.append(
+                            f"{get_color_indicator(info['color'])} **{info['symbol']}**: "
+                            f"{format_price(info['current_price'])} VNĐ "
+                            f"({change_sign}{info['change_percent']:.2f}%)"
+                        )
+                    else:
+                        not_found.append(symbol)
+
+                if not_found:
+                    message_parts.append(f"\n❌ Không tìm thấy: `{', '.join(not_found)}`")
+
+                stock_log.info(f"Multi-stock query: {', '.join(symbols)} | User: {message.from_user.username} (ID: {message.from_user.id})")
+
+                bot.send_message(message.chat.id, "\n".join(message_parts), parse_mode="Markdown")
+
         except Exception as e:
             stock_log.error(f"Error in stock_handler: {e}")
             bot.send_message(
