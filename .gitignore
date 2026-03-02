@@ -14,7 +14,9 @@ __pycache__/
 *.mp3
 .env
 *.log
-# data folder - user game data
+
+# Runtime data folders
 data/
+bot-logs/
 
 # file requirements.txt thi se day len github

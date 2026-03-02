@@ -8,14 +8,16 @@ services:
     image: namtiamo/tele:latest
     container_name: telegram-bot
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       - TZ=Asia/Ho_Chi_Minh
       - PYTHONUNBUFFERED=1
     volumes:
-      - .:/app
+      # - .:/app
       - ./data:/app/data
-      - ./logs:/app/logs
-      - ./config.py:/app/config.py
+      - ./bot-logs:/app/bot-logs  # Mount folder bot-logs cho log files
+      # - ./config.py:/app/config.py
     network_mode: host   # 👉 dùng mạng host, bỏ networks ở dưới
     dns:
       - 8.8.8.8

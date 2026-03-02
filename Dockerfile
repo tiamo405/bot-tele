@@ -8,6 +8,9 @@ WORKDIR /app
 # Sao chép mã nguồn ứng dụng vào thư mục làm việc
 COPY . .
 
-# Lệnh để chạy ứng dụng
+# Tạo folder bot-logs/ cho log files (sẽ được mount từ host)
+# Folder logs/ chứa code Python được giữ nguyên trong image
+RUN mkdir -p data bot-logs
 
+# Lệnh để chạy ứng dụng
 CMD ["python", "app.py"]

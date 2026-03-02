@@ -48,24 +48,27 @@ ENV/
 Thumbs.db
 
 #---------------file-----------
+# Runtime data - SẼ ĐƯỢC MOUNT TỪ HOST, KHÔNG COPY VÀO IMAGE
+logs/*.log
+data/
+
+# Other binary/media files
 **/*.pth
 **/*.jpg
 **/*.png
 **/*.csv
-**/*.json
-**/*.txt
-!**/requirements.txt
 **/*.zip
 **/*.tar
 **/*.mp4
 **/*.mp3
 
-# Logs (sẽ được mount từ host)
-*.log
-logs/
+# Text files except requirements.txt
+**/*.txt
+!**/requirements.txt
 
-# Data files (sẽ được mount từ host)
-data/
+# Cache directories
+logs/__pycache__
+data/__pycache__
 
 # Fly.io
 fly.toml
