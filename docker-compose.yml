@@ -5,7 +5,7 @@ services:
     # build:
     #   context: .
     #   dockerfile: Dockerfile
-    image: namtiamo/tele:latest
+    image: namtiamo/tele:v1.0.1
     container_name: telegram-bot
     restart: unless-stopped
     env_file:

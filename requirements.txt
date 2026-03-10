@@ -8,3 +8,4 @@ vnstock == 3.3.1
 packaging
 ipython
 python-dotenv
+google-genai

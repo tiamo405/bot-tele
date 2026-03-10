@@ -1,7 +1,7 @@
 from telebot import TeleBot
 import config
 import time
-from handlers import gold, start, help, horoscope, time_sleep, simsimi, catfact, weather, lunch_reminder, xsmb, taixiu, lunar_calendar, badminton_reminder, tet_reminder, tet_command, stock, silver
+from handlers import gold, start, help, horoscope, time_sleep, simsimi, catfact, weather, lunch_reminder, xsmb, taixiu, lunar_calendar, badminton_reminder, tet_reminder, tet_command, stock, silver, exchange_rate, ai
 from utils.log_helper import log_user_action
 
 # Khởi tạo bot
@@ -10,6 +10,7 @@ bot = TeleBot(config.BOT_TOKEN)
 # Đăng ký các handler
 start.register_handlers(bot)
 help.register_handlers(bot)
+ai.register_handlers(bot)
 horoscope.register_handlers(bot)
 time_sleep.register_handlers(bot)
 simsimi.register_handlers(bot)
@@ -25,6 +26,7 @@ lunar_calendar.register_handlers(bot)
 stock.register_handlers(bot)
 gold.register_handlers(bot)
 silver.register_handlers(bot)
+exchange_rate.register_handlers(bot)
 
 @bot.message_handler(commands=["getid"])
 def handle_get_id(message):

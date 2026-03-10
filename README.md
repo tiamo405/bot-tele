@@ -93,17 +93,17 @@ docker build --rm --force-rm -t namtiamo/tele:latest .
 docker build -f Dockerfile.base -t namtiamo/tele-base:latest .
 
 # Sau đó build app image
-docker build --rm --force-rm -t namtiamo/tele:latest .
+docker build --rm --force-rm -t namtiamo/tele:v1.0.0 .
 ```
 
 ## Cách build thông thường (không dùng base image)
 - Build images (tự động xóa intermediate containers)
 ```bash
-docker build --rm --force-rm -t namtiamo/tele:latest .
+docker build --rm --force-rm -t namtiamo/tele:v1.0.0 .
 ```
 - Run container
 ```bash
-docker run --restart=always -dit --ipc=host --net=host --privileged --name tele -v $(pwd):/app  namtiamo/tele:latest
+docker run --restart=always -dit --ipc=host --net=host --privileged --name tele -v $(pwd):/app  namtiamo/tele:v1.0.0
 ```
 - Xóa images cũ không dùng (dangling images)
 ```bash

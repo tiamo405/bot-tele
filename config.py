@@ -5,15 +5,19 @@ from utils.json_storage import JSONStorage
 # Load environment variables from .env file
 load_dotenv()
 
+# Directory paths
+DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+
 # Environment variables (simple configuration values)
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEATHER_KEY = os.getenv("WEATHER_KEY")
 API_KEY_1TOUCH = os.getenv("API_KEY_1TOUCH")
 VNSTOCK_API_KEY = os.getenv("VNSTOCK_API_KEY")
 API_KEY_ALPHAVANTAGE = os.getenv("API_KEY_ALPHAVANTAGE")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # Load chat IDs from JSON file (proper way to store structured data)
-_chat_ids_file = os.path.join(os.path.dirname(__file__), "data", "chat_ids.json")
+_chat_ids_file = os.path.join(DATA_DIR, "chat_ids.json")
 _chat_ids_storage = JSONStorage(_chat_ids_file, default_data={
     "reminder_lunch": [],
     "reminder_badminton": [],
