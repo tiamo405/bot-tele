@@ -4,7 +4,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import schedule
 from datetime import datetime
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ForceReply
 from get_api.stock import get_stock_info, get_stock_info_list_smart
 from logs.logs import setup_logger
 from utils.scheduler import start_scheduler
@@ -18,6 +18,15 @@ stock_log = setup_logger('stock.log')
 SUBSCRIPTIONS_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'stock_subscriptions.json')
 storage = JSONStorage(SUBSCRIPTIONS_FILE, default_data={})
 
+# File lưu trữ nhóm chứng khoán
+GROUPS_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'stock_groups.json')
+groups_storage = JSONStorage(GROUPS_FILE, default_data={})
+
+# Cấu hình quyền sửa/xóa nhóm
+# True: Chỉ người tạo mới được sửa/xóa nhóm của mình
+# False: Ai cũng có thể sửa/xóa nhóm của nhau
+isOwner = False
+
 def load_subscriptions():
     """Đọc danh sách subscriptions từ file JSON"""
     return storage.load()
@@ -25,6 +34,14 @@ def load_subscriptions():
 def save_subscriptions(subscriptions):
     """Lưu subscriptions vào file JSON"""
     return storage.save(subscriptions)
+
+def load_groups():
+    """Đọc danh sách nhóm chứng khoán từ file JSON"""
+    return groups_storage.load()
+
+def save_groups(groups):
+    """Lưu nhóm chứng khoán vào file JSON"""
+    return groups_storage.save(groups)
 
 # Sử dụng formatter từ utils
 def get_color_indicator(color):
@@ -92,7 +109,115 @@ def send_stock_notification(bot):
 def register_handlers(bot):
     """Đăng ký các handlers cho chức năng stock"""
     
-    # Handler 1: Xem giá chứng khoán
+    # Handler 1: Quản lý nhóm chứng khoán
+    @bot.message_handler(commands=['cknhom', 'stockgroup', 'nhomck'])
+    def stock_group_handler(message):
+        """Quản lý nhóm chứng khoán: /cknhom hoặc /cknhom <tên nhóm>"""
+        try:
+            parts = message.text.strip().split()
+            
+            # Nếu có tên nhóm -> hiển thị thông tin các mã trong nhóm
+            if len(parts) >= 2:
+                group_name = parts[1].lower()
+                groups = load_groups()
+                
+                if group_name not in groups:
+                    log_user_action(message, "/cknhom", f"Group not found: {group_name}")
+                    bot.send_message(
+                        message.chat.id,
+                        f"❌ Không tìm thấy nhóm **{group_name}**\n\n"
+                        f"💡 Dùng `/cknhom` để xem danh sách nhóm",
+                        parse_mode="Markdown"
+                    )
+                    return
+                
+                group_data = groups[group_name]
+                symbols = group_data['symbols']
+                
+                log_user_action(message, "/cknhom", f"View group: {group_name} ({len(symbols)} stocks)")
+                
+                if not symbols:
+                    bot.send_message(
+                        message.chat.id,
+                        f"📂 **Nhóm: {group_name.upper()}**\n\n"
+                        f"❌ Nhóm này chưa có mã nào!",
+                        parse_mode="Markdown"
+                    )
+                    return
+                
+                # Lấy thông tin tất cả mã trong nhóm
+                stocks_info = get_stock_info_list_smart(symbols)
+                
+                message_parts = [f"📂 **NHÓM: {group_name.upper()}** 📂\n"]
+                
+                if stocks_info:
+                    for symbol in symbols:
+                        info = stocks_info.get(symbol)
+                        if info:
+                            change_sign = "+" if info['change_percent'] >= 0 else ""
+                            message_parts.append(
+                                f"{get_color_indicator(info['color'])} **{info['symbol']}**: "
+                                f"{format_price(info['current_price'])} VNĐ "
+                                f"({change_sign}{info['change_percent']:.2f}%)"
+                            )
+                else:
+                    message_parts.append("⚠️ Không thể tải dữ liệu. Vui lòng thử lại sau.")
+                
+                stock_log.info(f"Group view: {group_name} | Stocks: {', '.join(symbols)} | User: {message.from_user.username} (ID: {message.from_user.id})")
+                
+                bot.send_message(
+                    message.chat.id,
+                    "\n".join(message_parts),
+                    parse_mode="Markdown"
+                )
+            
+            # Nếu không có tên nhóm -> hiển thị menu quản lý
+            else:
+                log_user_action(message, "/cknhom", "User opened stock group menu")
+                stock_log.info(f"Stock group menu opened | User: {message.from_user.username} (ID: {message.from_user.id})")
+                
+                groups = load_groups()
+                user_groups_count = sum(1 for g in groups.values() if g['created_by'] == message.from_user.id)
+                
+                markup = InlineKeyboardMarkup(row_width=1)
+                buttons = [
+                    InlineKeyboardButton(
+                        text="➕ Thêm nhóm mới",
+                        callback_data="stock_group_add"
+                    ),
+                    InlineKeyboardButton(
+                        text="✏️ Sửa nhóm",
+                        callback_data="stock_group_edit"
+                    ),
+                    InlineKeyboardButton(
+                        text="➖ Xóa nhóm",
+                        callback_data="stock_group_delete"
+                    ),
+                    InlineKeyboardButton(
+                        text="👁️ Xem tất cả nhóm",
+                        callback_data="stock_group_view_all"
+                    )
+                ]
+                markup.add(*buttons)
+                
+                bot.send_message(
+                    message.chat.id,
+                    f"📂 **QUẢN LÝ NHÓM CHỨNG KHOÁN** 📂\n\n"
+                    f"📊 Tổng số nhóm: **{len(groups)}**\n"
+                    f"👤 Nhóm của bạn: **{user_groups_count}**\n\n"
+                    f"💡 Sử dụng: `/cknhom <tên nhóm>` để xem nhanh",
+                    parse_mode="Markdown",
+                    reply_markup=markup
+                )
+        
+        except Exception as e:
+            stock_log.error(f"Error in stock_group_handler: {e}")
+            bot.send_message(
+                message.chat.id,
+                "❌ Có lỗi xảy ra, vui lòng thử lại!"
+            )
+    
+    # Handler 2: Xem giá chứng khoán
     @bot.message_handler(commands=['stock', 'chungkhoan', 'chung', 'ck'])
     def stock_handler(message):
         """Xem giá chứng khoán: /stock VCB hoặc /stock VCB MSN HPG"""
@@ -179,7 +304,450 @@ def register_handlers(bot):
                 "❌ Có lỗi xảy ra, vui lòng thử lại!"
             )
     
-    # Handler 2: Quản lý subscriptions
+    # Handler callback cho quản lý nhóm CK
+    @bot.callback_query_handler(func=lambda call: call.data == "stock_group_add")
+    def stock_group_add_callback(call):
+        """Yêu cầu người dùng nhập tên nhóm"""
+        msg = bot.send_message(
+            call.message.chat.id,
+            "📝 **THÊM NHÓM MỚI**\n\n"
+            "Bước 1/2: Nhập tên nhóm (viết không dấu)\n\n"
+            "💡 VD: `bank`, `tech`, `bluechip`",
+            parse_mode="Markdown",
+            reply_markup=ForceReply(selective=True)
+        )
+        bot.register_next_step_handler(msg, process_add_group_name, call.from_user.id)
+        bot.answer_callback_query(call.id)
+    
+    def process_add_group_name(message, user_id):
+        """Xử lý tên nhóm và yêu cầu nhập danh sách mã"""
+        try:
+            # Kiểm tra xem người gửi có phải là người đã kích hoạt lệnh không
+            if message.from_user.id != user_id:
+                return  # Bỏ qua nếu không phải người đã kích hoạt
+            
+            # Kiểm tra xem message có phải là reply không (cho group chat)
+            # Nếu không phải reply và đang trong group, bỏ qua
+            if message.chat.type in ['group', 'supergroup']:
+                if not message.reply_to_message:
+                    return  # Bỏ qua nếu không phải reply trong group
+            
+            group_name = message.text.strip().lower().replace(' ', '_')
+            
+            if not group_name or len(group_name) < 2:
+                bot.send_message(
+                    message.chat.id,
+                    "❌ Tên nhóm quá ngắn! Vui lòng thử lại.",
+                    parse_mode="Markdown"
+                )
+                return
+            
+            groups = load_groups()
+            
+            if group_name in groups:
+                bot.send_message(
+                    message.chat.id,
+                    f"❌ Nhóm **{group_name}** đã tồn tại!\n\n"
+                    f"💡 Vui lòng chọn tên khác hoặc sửa nhóm hiện có.",
+                    parse_mode="Markdown"
+                )
+                return
+            
+            msg = bot.send_message(
+                message.chat.id,
+                f"📝 **THÊM NHÓM: {group_name.upper()}**\n\n"
+                f"Bước 2/2: Nhập danh sách mã chứng khoán\n\n"
+                f"💡 Cách nhập: `VCB BID TCB` hoặc `VCB, BID, TCB`",
+                parse_mode="Markdown",
+                reply_markup=ForceReply(selective=True)
+            )
+            bot.register_next_step_handler(msg, process_add_group_symbols, group_name, user_id)
+        
+        except Exception as e:
+            stock_log.error(f"Error in process_add_group_name: {e}")
+            bot.send_message(
+                message.chat.id,
+                "❌ Có lỗi xảy ra, vui lòng thử lại!"
+            )
+    
+    def process_add_group_symbols(message, group_name, user_id):
+        """Xử lý danh sách mã và tạo nhóm"""
+        try:
+            # Kiểm tra xem người gửi có phải là người đã kích hoạt lệnh không
+            if message.from_user.id != user_id:
+                return  # Bỏ qua nếu không phải người đã kích hoạt
+            
+            # Kiểm tra xem message có phải là reply không (cho group chat)
+            if message.chat.type in ['group', 'supergroup']:
+                if not message.reply_to_message:
+                    return  # Bỏ qua nếu không phải reply trong group
+            
+            input_text = message.text.strip().replace(',', ' ')
+            symbols = [s.strip().upper() for s in input_text.split() if s.strip()]
+            
+            if not symbols:
+                bot.send_message(
+                    message.chat.id,
+                    "❌ Vui lòng nhập ít nhất một mã chứng khoán!",
+                    parse_mode="Markdown"
+                )
+                return
+            
+            # Kiểm tra tính hợp lệ của các mã
+            valid_symbols = []
+            invalid_symbols = []
+            
+            for symbol in symbols:
+                info = get_stock_info(symbol)
+                if info:
+                    valid_symbols.append(symbol)
+                else:
+                    invalid_symbols.append(symbol)
+            
+            if not valid_symbols:
+                bot.send_message(
+                    message.chat.id,
+                    f"❌ Không có mã hợp lệ nào!\n\n"
+                    f"Các mã không tìm thấy: `{', '.join(invalid_symbols)}`",
+                    parse_mode="Markdown"
+                )
+                return
+            
+            # Lưu nhóm
+            groups = load_groups()
+            groups[group_name] = {
+                'name': group_name,
+                'symbols': valid_symbols,
+                'created_by': message.from_user.id
+            }
+            save_groups(groups)
+            
+            stock_log.info(f"Group created: {group_name} | Stocks: {', '.join(valid_symbols)} | User: {message.from_user.username} (ID: {message.from_user.id})")
+            
+            result_parts = [
+                f"✅ **ĐÃ TẠO NHÓM: {group_name.upper()}**\n",
+                f"📊 Số mã hợp lệ: **{len(valid_symbols)}**",
+                f"Danh sách: `{', '.join(valid_symbols)}`"
+            ]
+            
+            if invalid_symbols:
+                result_parts.append(f"\n❌ Các mã không hợp lệ ({len(invalid_symbols)}): `{', '.join(invalid_symbols)}`")
+            
+            result_parts.append(f"\n💡 Sử dụng: `/cknhom {group_name}` để xem nhóm này")
+            
+            bot.send_message(
+                message.chat.id,
+                "\n".join(result_parts),
+                parse_mode="Markdown"
+            )
+        
+        except Exception as e:
+            stock_log.error(f"Error in process_add_group_symbols: {e}")
+            bot.send_message(
+                message.chat.id,
+                "❌ Có lỗi xảy ra, vui lòng thử lại!"
+            )
+    
+    @bot.callback_query_handler(func=lambda call: call.data == "stock_group_edit")
+    def stock_group_edit_callback(call):
+        """Hiển thị danh sách nhóm của user để chọn sửa"""
+        groups = load_groups()
+        
+        # Nếu isOwner = True: chỉ hiện nhóm của user
+        # Nếu isOwner = False: hiện tất cả nhóm
+        if isOwner:
+            user_groups = {k: v for k, v in groups.items() if v['created_by'] == call.from_user.id}
+        else:
+            user_groups = groups
+        
+        if not user_groups:
+            bot.answer_callback_query(call.id, "Chưa có nhóm nào!" if not isOwner else "Bạn chưa tạo nhóm nào!")
+            return
+        
+        markup = InlineKeyboardMarkup(row_width=1)
+        buttons = [
+            InlineKeyboardButton(
+                text=f"✏️ {group_name.upper()} ({len(data['symbols'])} mã)",
+                callback_data=f"stock_group_edit_{group_name}"
+            ) for group_name, data in user_groups.items()
+        ]
+        markup.add(*buttons)
+        
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text="✏️ **CHỌN NHÓM CẦN SỬA:**",
+            parse_mode="Markdown",
+            reply_markup=markup
+        )
+        bot.answer_callback_query(call.id)
+    
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("stock_group_edit_"))
+    def stock_group_edit_selected_callback(call):
+        """Xử lý khi user chọn nhóm cần sửa"""
+        group_name = call.data.replace("stock_group_edit_", "")
+        groups = load_groups()
+        
+        if group_name not in groups:
+            bot.answer_callback_query(call.id, "Nhóm không tồn tại!")
+            return
+        
+        group_data = groups[group_name]
+        current_symbols = ', '.join(group_data['symbols'])
+        
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text=f"✏️ **SỬA NHÓM: {group_name.upper()}**\n\n"
+                 f"📋 Danh sách hiện tại:\n`{current_symbols}`\n\n"
+                 f"📝 Nhập danh sách mã mới:",
+            parse_mode="Markdown"
+        )
+        
+        bot.answer_callback_query(call.id)
+        
+        # Gửi tin nhắn mới với ForceReply thay vì dùng call.message
+        msg = bot.send_message(
+            call.message.chat.id,
+            f"📝 Vui lòng reply tin nhắn này với danh sách mã mới cho nhóm **{group_name.upper()}**:",
+            parse_mode="Markdown",
+            reply_markup=ForceReply(selective=True)
+        )
+        bot.register_next_step_handler(msg, process_edit_group_symbols, group_name, call.from_user.id)
+    
+    def process_edit_group_symbols(message, group_name, user_id):
+        """Xử lý cập nhật danh sách mã mới cho nhóm"""
+        try:
+            # Kiểm tra xem người gửi có phải là người đã kích hoạt lệnh không
+            if message.from_user.id != user_id:
+                return  # Bỏ qua nếu không phải người đã kích hoạt
+            
+            # Kiểm tra xem message có phải là reply không (cho group chat)
+            if message.chat.type in ['group', 'supergroup']:
+                if not message.reply_to_message:
+                    return  # Bỏ qua nếu không phải reply trong group
+            
+            input_text = message.text.strip().replace(',', ' ')
+            symbols = [s.strip().upper() for s in input_text.split() if s.strip()]
+            
+            if not symbols:
+                bot.send_message(
+                    message.chat.id,
+                    "❌ Vui lòng nhập ít nhất một mã chứng khoán!",
+                    parse_mode="Markdown"
+                )
+                return
+            
+            # Kiểm tra tính hợp lệ
+            valid_symbols = []
+            invalid_symbols = []
+            
+            for symbol in symbols:
+                info = get_stock_info(symbol)
+                if info:
+                    valid_symbols.append(symbol)
+                else:
+                    invalid_symbols.append(symbol)
+            
+            if not valid_symbols:
+                bot.send_message(
+                    message.chat.id,
+                    f"❌ Không có mã hợp lệ nào!\n\n"
+                    f"Các mã không tìm thấy: `{', '.join(invalid_symbols)}`",
+                    parse_mode="Markdown"
+                )
+                return
+            
+            # Cập nhật nhóm
+            groups = load_groups()
+            groups[group_name]['symbols'] = valid_symbols
+            save_groups(groups)
+            
+            stock_log.info(f"Group updated: {group_name} | New stocks: {', '.join(valid_symbols)} | User: {message.from_user.username} (ID: {message.from_user.id})")
+            
+            result_parts = [
+                f"✅ **ĐÃ CẬP NHẬT NHÓM: {group_name.upper()}**\n",
+                f"📊 Số mã: **{len(valid_symbols)}**",
+                f"Danh sách: `{', '.join(valid_symbols)}`"
+            ]
+            
+            if invalid_symbols:
+                result_parts.append(f"\n❌ Các mã không hợp lệ: `{', '.join(invalid_symbols)}`")
+            
+            bot.send_message(
+                message.chat.id,
+                "\n".join(result_parts),
+                parse_mode="Markdown"
+            )
+        
+        except Exception as e:
+            stock_log.error(f"Error in process_edit_group_symbols: {e}")
+            bot.send_message(
+                message.chat.id,
+                "❌ Có lỗi xảy ra, vui lòng thử lại!"
+            )
+    
+    @bot.callback_query_handler(func=lambda call: call.data == "stock_group_delete")
+    def stock_group_delete_callback(call):
+        """Hiển thị danh sách nhóm của user để xóa"""
+        groups = load_groups()
+        
+        # Nếu isOwner = True: chỉ hiện nhóm của user
+        # Nếu isOwner = False: hiện tất cả nhóm
+        if isOwner:
+            user_groups = {k: v for k, v in groups.items() if v['created_by'] == call.from_user.id}
+        else:
+            user_groups = groups
+        
+        if not user_groups:
+            bot.answer_callback_query(call.id, "Chưa có nhóm nào!" if not isOwner else "Bạn chưa tạo nhóm nào!")
+            return
+        
+        markup = InlineKeyboardMarkup(row_width=1)
+        buttons = [
+            InlineKeyboardButton(
+                text=f"🗑️ {group_name.upper()} ({len(data['symbols'])} mã)",
+                callback_data=f"stock_group_del_{group_name}"
+            ) for group_name, data in user_groups.items()
+        ]
+        markup.add(*buttons)
+        
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text="🗑️ **CHỌN NHÓM CẦN XÓA:**",
+            parse_mode="Markdown",
+            reply_markup=markup
+        )
+        bot.answer_callback_query(call.id)
+    
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("stock_group_del_"))
+    def stock_group_delete_confirm_callback(call):
+        """Xử lý xóa nhóm"""
+        group_name = call.data.replace("stock_group_del_", "")
+        groups = load_groups()
+        
+        # Kiểm tra quyền xóa
+        can_delete = False
+        if group_name in groups:
+            if isOwner:
+                # Chỉ người tạo mới được xóa
+                can_delete = groups[group_name]['created_by'] == call.from_user.id
+            else:
+                # Ai cũng có thể xóa
+                can_delete = True
+        
+        if can_delete:
+            del groups[group_name]
+            save_groups(groups)
+            
+            stock_log.info(f"Group deleted: {group_name} | User: {call.from_user.username} (ID: {call.from_user.id})")
+            
+            bot.edit_message_text(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                text=f"✅ Đã xóa nhóm **{group_name.upper()}**!",
+                parse_mode="Markdown"
+            )
+        else:
+            bot.answer_callback_query(call.id, "Không thể xóa nhóm này!")
+    
+    @bot.callback_query_handler(func=lambda call: call.data == "stock_group_view_all")
+    def stock_group_view_all_callback(call):
+        """Hiển thị tất cả nhóm"""
+        try:
+            bot.answer_callback_query(call.id, "Đang tải...")
+        except:
+            pass
+        
+        groups = load_groups()
+        
+        if not groups:
+            bot.edit_message_text(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                text="❌ Chưa có nhóm nào!\n\n"
+                     "💡 Dùng `/cknhom` để tạo nhóm mới",
+                parse_mode="Markdown"
+            )
+            return
+        
+        markup = InlineKeyboardMarkup(row_width=1)
+        buttons = [
+            InlineKeyboardButton(
+                text=f"📂 {group_name.upper()} ({len(data['symbols'])} mã)",
+                callback_data=f"stock_group_show_{group_name}"
+            ) for group_name, data in groups.items()
+        ]
+        markup.add(*buttons)
+        
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text=f"👁️ **TẤT CẢ NHÓM CHỨNG KHOÁN**\n\n"
+                 f"📊 Tổng số: **{len(groups)}** nhóm\n\n"
+                 f"Chọn nhóm để xem chi tiết:",
+            parse_mode="Markdown",
+            reply_markup=markup
+        )
+    
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("stock_group_show_"))
+    def stock_group_show_callback(call):
+        """Hiển thị chi tiết một nhóm"""
+        try:
+            bot.answer_callback_query(call.id, "Đang tải...")
+        except:
+            pass
+        
+        group_name = call.data.replace("stock_group_show_", "")
+        groups = load_groups()
+        
+        if group_name not in groups:
+            bot.answer_callback_query(call.id, "Nhóm không tồn tại!")
+            return
+        
+        group_data = groups[group_name]
+        symbols = group_data['symbols']
+        
+        if not symbols:
+            bot.edit_message_text(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                text=f"📂 **Nhóm: {group_name.upper()}**\n\n"
+                     f"❌ Nhóm này chưa có mã nào!",
+                parse_mode="Markdown"
+            )
+            return
+        
+        # Lấy thông tin tất cả mã trong nhóm
+        stocks_info = get_stock_info_list_smart(symbols)
+        
+        message_parts = [f"📂 **NHÓM: {group_name.upper()}** 📂\n"]
+        
+        if stocks_info:
+            for symbol in symbols:
+                info = stocks_info.get(symbol)
+                if info:
+                    change_sign = "+" if info['change_percent'] >= 0 else ""
+                    message_parts.append(
+                        f"{get_color_indicator(info['color'])} **{info['symbol']}**: "
+                        f"{format_price(info['current_price'])} VNĐ "
+                        f"({change_sign}{info['change_percent']:.2f}%)"
+                    )
+        else:
+            message_parts.append("⚠️ Không thể tải dữ liệu. Vui lòng thử lại sau.")
+        
+        try:
+            bot.edit_message_text(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                text="\n".join(message_parts),
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            stock_log.error(f"Error editing message in stock_group_show_callback: {e}")
+    
+    # Handler 3: Quản lý subscriptions
     @bot.message_handler(commands=['stockwatch', 'theodoick', 'ckwatch'])
     def stock_watch_handler(message):
         """Menu quản lý theo dõi chứng khoán"""
@@ -226,14 +794,24 @@ def register_handlers(bot):
             "📝 Nhập mã chứng khoán cần theo dõi\n\n"
             "💡 Có thể nhập nhiều mã cách nhau bởi dấu cách hoặc phẩy\n"
             "VD: `VCB HPG FPT` hoặc `VCB, HPG, FPT`",
-            parse_mode="Markdown"
+            parse_mode="Markdown",
+            reply_markup=ForceReply(selective=True)
         )
-        bot.register_next_step_handler(msg, process_add_stock)
+        bot.register_next_step_handler(msg, process_add_stock, call.from_user.id)
         bot.answer_callback_query(call.id)
     
-    def process_add_stock(message):
+    def process_add_stock(message, user_id):
         """Xử lý thêm mã chứng khoán (hỗ trợ nhiều mã cùng lúc)"""
         try:
+            # Kiểm tra xem người gửi có phải là người đã kích hoạt lệnh không
+            if message.from_user.id != user_id:
+                return  # Bỏ qua nếu không phải người đã kích hoạt
+            
+            # Kiểm tra xem message có phải là reply không (cho group chat)
+            if message.chat.type in ['group', 'supergroup']:
+                if not message.reply_to_message:
+                    return  # Bỏ qua nếu không phải reply trong group
+            
             # Parse nhiều mã, hỗ trợ cả dấu cách và dấu phẩy
             input_text = message.text.strip().replace(',', ' ')
             symbols = [s.strip().upper() for s in input_text.split() if s.strip()]
