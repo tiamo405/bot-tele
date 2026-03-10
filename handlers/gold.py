@@ -1,13 +1,143 @@
 import os, sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from get_api.gold import get_gold, URL_SJC, URL_DOJI, make_gapi_request, make_alpha_request
+from get_api.gold import get_gold, URL_SJC, URL_DOJI, make_gapi_request, make_alpha_request, make_gold_XAUUSD_request
+from get_api.usd import get_vcb_exchange_rate
 from utils.log_helper import log_user_action
 from logs.logs import setup_logger
+from utils.json_storage import JSONStorage
+from datetime import datetime
 import schedule
 from utils.scheduler import start_scheduler
 import config
 
 aug_log = setup_logger('aug.log')
+
+# Initialize gold price storage
+GOLD_PRICE_FILE = os.path.join(config.DATA_DIR, 'gold_prices.json')
+gold_storage = JSONStorage(GOLD_PRICE_FILE, default_data={})
+
+def extract_price_number(price_str):
+    """Extract numeric price from formatted strings like '180.800 x1000đ/lượng' or '180.800'"""
+    try:
+        # Remove everything after and including 'x1000' or just get the number part
+        price_part = price_str.split('x1000')[0].strip()
+        # Remove any currency symbols and convert to float
+        price_part = price_part.replace(',', '').replace('.', '').strip()
+        return float(price_part) / 1000  # Convert to actual thousands
+    except:
+        return 0
+
+def get_previous_gold_price(gold_type):
+    """
+    Get the most recent saved gold price for comparison
+    
+    Args:
+        gold_type: Type of gold (e.g., 'SJC_MIENG', 'DOJI_NHAN', 'WORLD_GOLD_USD')
+    
+    Returns:
+        Dict with buy/sell prices or None if no history
+    """
+    try:
+        all_prices = gold_storage.load()
+        
+        if gold_type in all_prices and len(all_prices[gold_type]) > 0:
+            latest = all_prices[gold_type][0]
+            return {
+                "buy": latest.get("buy"),
+                "sell": latest.get("sell")
+            }
+        return None
+    except Exception as e:
+        aug_log.error(f"Error getting previous gold price for {gold_type}: {str(e)}")
+        return None
+
+def get_price_indicator(current, previous):
+    """
+    Get color indicator based on price change
+    
+    Args:
+        current: Current price (float or None)
+        previous: Previous price (float or None)
+    
+    Returns:
+        Emoji indicator: 🟢 (up), 🔴 (down), 🟡 (same)
+    """
+    if current is None or previous is None:
+        return "⚪"  # White circle for no data
+    
+    if current > previous:
+        return "🟢"  # Green - price increased
+    elif current < previous:
+        return "🔴"  # Red - price decreased
+    else:
+        return "🟡"  # Yellow - price unchanged
+
+def save_gold_price(gold_type, buy_price, sell_price):
+    """
+    Save gold price data to history file
+    
+    Args:
+        gold_type: Type of gold (e.g., 'SJC_MIENG', 'DOJI_NHAN')
+        buy_price: Buy price (float)
+        sell_price: Sell price (float)
+    """
+    try:
+        all_prices = gold_storage.load()
+        
+        # Initialize gold type list if not exists
+        if gold_type not in all_prices:
+            all_prices[gold_type] = []
+        
+        # Create new entry with timestamp
+        new_entry = {
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "buy": buy_price,
+            "sell": sell_price
+        }
+        
+        # Add to history (newest first)
+        all_prices[gold_type].insert(0, new_entry)
+        
+        # Keep only last 100 entries per type to avoid file bloat
+        all_prices[gold_type] = all_prices[gold_type][:100]
+        
+        # Save back to file
+        gold_storage.save(all_prices)
+        aug_log.info(f"Saved gold price: {gold_type} | Buy: {buy_price} | Sell: {sell_price}")
+        
+    except Exception as e:
+        aug_log.error(f"Error saving gold price {gold_type}: {str(e)}")
+
+def get_world_gold_price_vnd():
+    """Get world gold price in VND with comparison to SJC"""
+    try:
+        # Get world gold price in USD/oz
+        price_usd = make_gold_XAUUSD_request()
+        if not price_usd:
+            price_usd = make_gapi_request()
+        if not price_usd:
+            price_usd = make_alpha_request()
+        
+        if not price_usd:
+            return None
+        
+        # Get USD exchange rate
+        usd_rate = get_vcb_exchange_rate("USD")
+        if not usd_rate or not usd_rate['sell']:
+            return None
+        
+        # Convert USD/oz to VND/lượng (1 oz = 31.1035 grams, 1 lượng = 37.5 grams)
+        oz_to_luong = 37.5 / 31.1035
+        price_vnd_per_luong = price_usd * usd_rate['sell'] * oz_to_luong
+        
+        return {
+            'price_usd': price_usd,
+            'exchange_rate': usd_rate['sell'],
+            'price_vnd': price_vnd_per_luong
+        }
+    except Exception as e:
+        aug_log.error(f"Error calculating world gold price: {str(e)}")
+        return None
 
 def format_gold_message(gold_data, company_name):
     """Format gold price data into a message"""
@@ -33,20 +163,39 @@ def send_gold_price(bot, chat_id, url, company_name):
         bot.send_message(chat_id, f"❌ Lỗi khi lấy giá vàng {company_name}: {str(e)}")
 
 def send_scheduled_gold_prices(bot):
-    """Send both SJC and DOJI prices to scheduled chat IDs"""
-    aug_log.info(f"Scheduled gold price update started at 9:15 AM")
+    """Send simplified gold prices to scheduled chat IDs"""
+    aug_log.info(f"Scheduled gold price update started at 9:00 AM")
     for chat_id in config.SCHEDULE_AUG_CHAT_IDS:
         try:
-            # Send SJC price
+            # Get SJC and DOJI prices
             gold_sjc = get_gold(URL_SJC)
-            message_sjc = format_gold_message(gold_sjc, "SJC")
-            bot.send_message(chat_id, message_sjc, parse_mode="Markdown")
-            
-            # Send DOJI price
             gold_doji = get_gold(URL_DOJI)
-            message_doji = format_gold_message(gold_doji, "DOJI")
-            bot.send_message(chat_id, message_doji, parse_mode="Markdown")
             
+            # Extract numeric prices
+            sjc_buy = extract_price_number(gold_sjc['vang_mieng']['mua'])
+            sjc_sell = extract_price_number(gold_sjc['vang_mieng']['ban'])
+            doji_buy = extract_price_number(gold_doji['vang_nhan']['mua'])
+            doji_sell = extract_price_number(gold_doji['vang_nhan']['ban'])
+            
+            # Get world gold price in VND
+            world_price = get_world_gold_price_vnd()
+            
+            msg = ""
+            if world_price:
+                # Calculate difference with SJC sell price
+                # sjc_sell is in thousands (e.g., 183.8), so multiply by 1,000,000 to get full VND
+                diff = (sjc_sell * 1_000_000) - world_price['price_vnd']
+                diff_icon = "📈" if diff > 0 else "📉"
+                
+                msg += f"🌏 Giá TG: {world_price['price_usd']:,.2f} USD/oz\n"
+                msg += f"🏦 Tỷ giá bank: {world_price['exchange_rate']:,.0f} → Giá Hiện tại: {world_price['price_vnd']:,.0f} VND\n"
+                msg += f"🏅 Chênh lệch với SJC: {diff_icon} {abs(diff):,.0f} VND\n\n"
+            
+            msg += "━━━━━━━━━━━━━━━━\n"
+            msg += f"👑 Miếng SJC: {sjc_buy:,.3f} - {sjc_sell:,.3f}\n"
+            msg += f"⚜️ Doji: {doji_buy:,.3f} - {doji_sell:,.3f}"
+            
+            bot.send_message(chat_id, msg)
             aug_log.info(f"Scheduled gold prices sent successfully to chat {chat_id}")
         except Exception as e:
             aug_log.error(f"Error sending scheduled gold prices to {chat_id}: {str(e)}")
@@ -54,30 +203,99 @@ def send_scheduled_gold_prices(bot):
 def register_handlers(bot):
     @bot.message_handler(commands=['vang'])
     def handle_aug(message):
-        # Parse the command arguments
-        args = message.text.split()
+        """Handle /vang command with world price comparison"""
+        log_user_action(message, "/vang", "Requested gold price with comparison")
+        aug_log.info(f"Gold price request | User: {message.from_user.username} (ID: {message.from_user.id})")
         
-        # Log user action
-        company = "both" if len(args) == 1 else args[1].lower()
-        log_user_action(message, "/vang", f"Requested gold price: {company}")
-        aug_log.info(f"Manual gold price request: {company} | User: {message.from_user.username} (ID: {message.from_user.id})")
-        
-        if len(args) == 1:
-            # /vang - send both SJC and DOJI
-            send_gold_price(bot, message.chat.id, URL_SJC, "SJC")
-            send_gold_price(bot, message.chat.id, URL_DOJI, "DOJI")
-        elif len(args) == 2:
-            if args[1].lower() == 'sjc':
-                # /vang sjc
-                send_gold_price(bot, message.chat.id, URL_SJC, "SJC")
-            elif args[1].lower() == 'doji':
-                # /vang doji
-                send_gold_price(bot, message.chat.id, URL_DOJI, "DOJI")
-            else:
-                aug_log.warning(f"Invalid command: {message.text} | User: {message.from_user.username}")
-                bot.reply_to(message, "❌ Lệnh không hợp lệ. Sử dụng: /vang, /vang sjc, hoặc /vang doji")
-        else:
-            bot.reply_to(message, "❌ Lệnh không hợp lệ. Sử dụng: /vang, /vang sjc, hoặc /vang doji")
+        try:
+            # Get SJC and DOJI prices
+            gold_sjc = get_gold(URL_SJC)
+            gold_doji = get_gold(URL_DOJI)
+            
+            # Extract numeric prices
+            sjc_buy = extract_price_number(gold_sjc['vang_mieng']['mua'])
+            sjc_sell = extract_price_number(gold_sjc['vang_mieng']['ban'])
+            doji_buy = extract_price_number(gold_doji['vang_nhan']['mua'])
+            doji_sell = extract_price_number(gold_doji['vang_nhan']['ban'])
+            
+            # Get previous prices BEFORE saving new ones
+            prev_sjc = get_previous_gold_price('SJC_MIENG')
+            prev_doji = get_previous_gold_price('DOJI_NHAN')
+            
+            # Save new prices to history
+            save_gold_price('SJC_MIENG', sjc_buy, sjc_sell)
+            save_gold_price('DOJI_NHAN', doji_buy, doji_sell)
+            
+            # Get price indicators
+            sjc_buy_indicator = get_price_indicator(sjc_buy, prev_sjc['buy'] if prev_sjc else None)
+            sjc_sell_indicator = get_price_indicator(sjc_sell, prev_sjc['sell'] if prev_sjc else None)
+            doji_buy_indicator = get_price_indicator(doji_buy, prev_doji['buy'] if prev_doji else None)
+            doji_sell_indicator = get_price_indicator(doji_sell, prev_doji['sell'] if prev_doji else None)
+            
+            # Get world gold price in VND
+            world_price = get_world_gold_price_vnd()
+            
+            msg = ""
+            if world_price:
+                # Calculate difference with SJC sell price
+                # sjc_sell is in thousands (e.g., 183.8), so multiply by 1,000,000 to get full VND
+                diff = (sjc_sell * 1_000_000) - world_price['price_vnd']
+                diff_icon = "📈" if diff > 0 else "📉"
+                
+                msg += f"🌏 Giá TG: {world_price['price_usd']:,.2f} USD/oz\n"
+                msg += f"🏦 Tỷ giá bank: {world_price['exchange_rate']:,.0f} → Giá Hiện tại: {world_price['price_vnd']:,.0f} VND\n"
+                msg += f"🏅 Chênh lệch với SJC: {diff_icon} {abs(diff):,.0f} VND\n\n"
+            
+            msg += "━━━━━━━━━━━━━━━━\n"
+            msg += f"👑 Miếng SJC: {sjc_buy_indicator} {sjc_buy:,.3f} - {sjc_sell_indicator} {sjc_sell:,.3f}\n"
+            msg += f"⚜️ Doji: {doji_buy_indicator} {doji_buy:,.3f} - {doji_sell_indicator} {doji_sell:,.3f}"
+            
+            # Add price change info if there's previous data
+            if prev_sjc or prev_doji:
+                msg += "\n\n📊 _So với lần trước:_"
+                
+                if prev_sjc:
+                    sjc_buy_change = sjc_buy - prev_sjc['buy']
+                    sjc_sell_change = sjc_sell - prev_sjc['sell']
+                    msg += f"\n👑 SJC:"
+                    if sjc_buy_change != 0:
+                        msg += f" Mua {'+' if sjc_buy_change > 0 else ''}{sjc_buy_change:,.3f}"
+                    if sjc_sell_change != 0:
+                        msg += f" | Bán {'+' if sjc_sell_change > 0 else ''}{sjc_sell_change:,.3f}"
+                    if sjc_buy_change == 0 and sjc_sell_change == 0:
+                        msg += " Không đổi"
+                
+                if prev_doji:
+                    doji_buy_change = doji_buy - prev_doji['buy']
+                    doji_sell_change = doji_sell - prev_doji['sell']
+                    msg += f"\n⚜️ Doji:"
+                    if doji_buy_change != 0:
+                        msg += f" Mua {'+' if doji_buy_change > 0 else ''}{doji_buy_change:,.3f}"
+                    if doji_sell_change != 0:
+                        msg += f" | Bán {'+' if doji_sell_change > 0 else ''}{doji_sell_change:,.3f}"
+                    if doji_buy_change == 0 and doji_sell_change == 0:
+                        msg += " Không đổi"
+            
+            bot.send_message(message.chat.id, msg)
+            aug_log.info(f"Gold prices sent with comparison | Chat: {message.chat.id}")
+            
+        except Exception as e:
+            aug_log.error(f"Error getting gold prices: {str(e)}")
+            bot.send_message(message.chat.id, f"❌ Lỗi khi lấy giá vàng: {str(e)}")
+    
+    @bot.message_handler(commands=['vangsjc'])
+    def handle_aug_sjc(message):
+        """Handle /vangsjc command for detailed SJC price"""
+        log_user_action(message, "/vangsjc", "Requested SJC gold price")
+        aug_log.info(f"SJC gold price request | User: {message.from_user.username} (ID: {message.from_user.id})")
+        send_gold_price(bot, message.chat.id, URL_SJC, "SJC")
+    
+    @bot.message_handler(commands=['vangdoji'])
+    def handle_aug_doji(message):
+        """Handle /vangdoji command for detailed DOJI price"""
+        log_user_action(message, "/vangdoji", "Requested DOJI gold price")
+        aug_log.info(f"DOJI gold price request | User: {message.from_user.username} (ID: {message.from_user.id})")
+        send_gold_price(bot, message.chat.id, URL_DOJI, "DOJI")
     
     @bot.message_handler(commands=['vangtg'])
     def handle_world_gold(message):
@@ -86,11 +304,41 @@ def register_handlers(bot):
         aug_log.info(f"World gold price request | User: {message.from_user.username} (ID: {message.from_user.id})")
         
         try:
-            price_usd = make_gapi_request() if make_gapi_request() else make_alpha_request()
+            price_usd = make_gold_XAUUSD_request()
+            if not price_usd:
+                price_usd = make_gapi_request()
+            if not price_usd:
+                price_usd = make_alpha_request()
+            
             if price_usd:
+                # Get previous price BEFORE saving
+                prev_world = get_previous_gold_price('WORLD_GOLD_USD')
+                
+                # Save new price (using same value for buy and sell since world price is single value)
+                save_gold_price('WORLD_GOLD_USD', price_usd, price_usd)
+                
+                # Get price indicator
+                price_indicator = get_price_indicator(
+                    price_usd,
+                    prev_world['buy'] if prev_world else None
+                )
+                
                 msg = f"🌐 *Giá vàng thế giới*\n\n"
-                msg += f"💵 Giá: *${price_usd}/oz*\n"
-                msg += f"\n_Nguồn: GoldAPI.io_"
+                msg += f"💵 Giá: {price_indicator} *${price_usd:,.2f}/oz*\n"
+                
+                # Add comparison if there's previous data
+                if prev_world and prev_world['buy']:
+                    price_change = price_usd - prev_world['buy']
+                    msg += f"\n📊 _So với lần trước:_"
+                    if price_change > 0:
+                        msg += f"\n• +${price_change:,.2f}/oz"
+                    elif price_change < 0:
+                        msg += f"\n• ${price_change:,.2f}/oz"
+                    else:
+                        msg += f"\n• Không đổi"
+                
+                msg += f"\n\n_Nguồn: GoldAPI.io_"
+                
                 bot.send_message(message.chat.id, msg, parse_mode="Markdown")
                 aug_log.info(f"World gold price sent: ${price_usd}/oz | Chat: {message.chat.id}")
             else:
