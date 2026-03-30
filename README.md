@@ -96,10 +96,10 @@ docker build -f Dockerfile.base -t namtiamo/tele-base:latest .
 docker build --rm --force-rm -t namtiamo/tele:v1.0.0 .
 ```
 
-## Cách build thông thường (không dùng base image)
+## Cách build thông thường
 - Build images (tự động xóa intermediate containers)
 ```bash
-docker build --rm --force-rm -t namtiamo/tele:v1.0.0 .
+docker build --rm --force-rm -t namtiamo/tele:v1.0.2 .
 ```
 - Run container
 ```bash

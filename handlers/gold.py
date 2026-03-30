@@ -2,6 +2,7 @@ import os, sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from get_api.gold import get_gold, URL_SJC, URL_DOJI, make_gapi_request, make_alpha_request, make_gold_XAUUSD_request
 from get_api.usd import get_vcb_exchange_rate
+from get_api.usd_black import get_usd_black_rate
 from utils.log_helper import log_user_action
 from logs.logs import setup_logger
 from utils.json_storage import JSONStorage
@@ -109,31 +110,47 @@ def save_gold_price(gold_type, buy_price, sell_price):
         aug_log.error(f"Error saving gold price {gold_type}: {str(e)}")
 
 def get_world_gold_price_vnd():
-    """Get world gold price in VND with comparison to SJC"""
+    """Get world gold price in VND converted by bank and black-market USD rates"""
     try:
         # Get world gold price in USD/oz
-        price_usd = make_gold_XAUUSD_request()
+        price_usd = float(make_alpha_request())
+        origin = "AlphaVantage"
         if not price_usd:
-            price_usd = make_gapi_request()
+            price_usd = float(make_gapi_request())
+            origin = "GoldAPI.io"
         if not price_usd:
-            price_usd = make_alpha_request()
+            price_usd = float(make_gold_XAUUSD_request())
+            origin = "vang.today"
         
         if not price_usd:
             return None
-        
-        # Get USD exchange rate
-        usd_rate = get_vcb_exchange_rate("USD")
-        if not usd_rate or not usd_rate['sell']:
+
+        # Get USD exchange rates
+        bank_rate_data = get_vcb_exchange_rate("USD")
+        bank_sell = bank_rate_data.get('sell') if bank_rate_data else None
+
+        black_sell = None
+        try:
+            black_rate_data = get_usd_black_rate()
+            black_sell = black_rate_data.get('sell') if black_rate_data else None
+        except Exception as black_error:
+            aug_log.warning(f"Could not fetch black-market USD rate: {str(black_error)}")
+
+        if bank_sell is None and black_sell is None:
             return None
-        
+
         # Convert USD/oz to VND/lượng (1 oz = 31.1035 grams, 1 lượng = 37.5 grams)
         oz_to_luong = 37.5 / 31.1035
-        price_vnd_per_luong = price_usd * usd_rate['sell'] * oz_to_luong
-        
+        price_vnd_bank = price_usd * bank_sell * oz_to_luong if bank_sell is not None else None
+        price_vnd_black = price_usd * black_sell * oz_to_luong if black_sell is not None else None
+
         return {
             'price_usd': price_usd,
-            'exchange_rate': usd_rate['sell'],
-            'price_vnd': price_vnd_per_luong
+            'exchange_rate_bank': bank_sell,
+            'exchange_rate_black': black_sell,
+            'price_vnd_bank': price_vnd_bank,
+            'price_vnd_black': price_vnd_black,
+            'origin': origin
         }
     except Exception as e:
         aug_log.error(f"Error calculating world gold price: {str(e)}")
@@ -182,14 +199,27 @@ def send_scheduled_gold_prices(bot):
             
             msg = ""
             if world_price:
-                # Calculate difference with SJC sell price
-                # sjc_sell is in thousands (e.g., 183.8), so multiply by 1,000,000 to get full VND
-                diff = (sjc_sell * 1_000_000) - world_price['price_vnd']
-                diff_icon = "📈" if diff > 0 else "📉"
-                
                 msg += f"🌏 Giá TG: {world_price['price_usd']:,.2f} USD/oz\n"
-                msg += f"🏦 Tỷ giá bank: {world_price['exchange_rate']:,.0f} → Giá Hiện tại: {world_price['price_vnd']:,.0f} VND\n"
-                msg += f"🏅 Chênh lệch với SJC: {diff_icon} {abs(diff):,.0f} VND\n\n"
+                msg += f"  (Nguồn: {world_price['origin']})\n"
+
+                if world_price['exchange_rate_bank'] is not None and world_price['price_vnd_bank'] is not None:
+                    diff_bank = (sjc_sell * 1_000_000) - world_price['price_vnd_bank']
+                    diff_bank_icon = "📈" if diff_bank > 0 else "📉"
+                    msg += f"🏦 Tỷ giá bank: {world_price['exchange_rate_bank']:,.0f} → Giá quy đổi: {world_price['price_vnd_bank']:,.0f} VND\n"
+                    msg += f"🏅 Chênh lệch SJC (bank): {diff_bank_icon} {abs(diff_bank):,.0f} VND\n"
+
+                if world_price['exchange_rate_black'] is not None and world_price['price_vnd_black'] is not None:
+                    diff_black = (sjc_sell * 1_000_000) - world_price['price_vnd_black']
+                    diff_black_icon = "📈" if diff_black > 0 else "📉"
+                    msg += f"🏴 Tỷ giá chợ đen: {world_price['exchange_rate_black']:,.0f} → Giá quy đổi: {world_price['price_vnd_black']:,.0f} VND\n"
+                    msg += f"🏅 Chênh lệch SJC (chợ đen): {diff_black_icon} {abs(diff_black):,.0f} VND\n"
+
+                if world_price['price_vnd_bank'] is not None and world_price['price_vnd_black'] is not None:
+                    spread = world_price['price_vnd_black'] - world_price['price_vnd_bank']
+                    spread_icon = "📈" if spread > 0 else ("📉" if spread < 0 else "🟰")
+                    msg += f"🔁 Chợ đen - bank: {spread_icon} {spread:,.0f} VND\n"
+
+                msg += "\n"
             
             msg += "━━━━━━━━━━━━━━━━\n"
             msg += f"👑 Miếng SJC: {sjc_buy:,.3f} - {sjc_sell:,.3f}\n"
@@ -201,10 +231,11 @@ def send_scheduled_gold_prices(bot):
             aug_log.error(f"Error sending scheduled gold prices to {chat_id}: {str(e)}")
 
 def register_handlers(bot):
-    @bot.message_handler(commands=['vang'])
+    @bot.message_handler(commands=['vang', 'giavang'])
     def handle_aug(message):
-        """Handle /vang command with world price comparison"""
-        log_user_action(message, "/vang", "Requested gold price with comparison")
+        """Handle /vang and /giavang command with world price comparison"""
+        command_used = message.text.split()[0].lower() if message.text else "/vang"
+        log_user_action(message, command_used, "Requested gold price with comparison")
         aug_log.info(f"Gold price request | User: {message.from_user.username} (ID: {message.from_user.id})")
         
         try:
@@ -237,14 +268,27 @@ def register_handlers(bot):
             
             msg = ""
             if world_price:
-                # Calculate difference with SJC sell price
-                # sjc_sell is in thousands (e.g., 183.8), so multiply by 1,000,000 to get full VND
-                diff = (sjc_sell * 1_000_000) - world_price['price_vnd']
-                diff_icon = "📈" if diff > 0 else "📉"
-                
                 msg += f"🌏 Giá TG: {world_price['price_usd']:,.2f} USD/oz\n"
-                msg += f"🏦 Tỷ giá bank: {world_price['exchange_rate']:,.0f} → Giá Hiện tại: {world_price['price_vnd']:,.0f} VND\n"
-                msg += f"🏅 Chênh lệch với SJC: {diff_icon} {abs(diff):,.0f} VND\n\n"
+                msg += f"  (Nguồn: {world_price['origin']})\n"
+
+                if world_price['exchange_rate_bank'] is not None and world_price['price_vnd_bank'] is not None:
+                    diff_bank = (sjc_sell * 1_000_000) - world_price['price_vnd_bank']
+                    diff_bank_icon = "📈" if diff_bank > 0 else "📉"
+                    msg += f"🏦 Tỷ giá bank: {world_price['exchange_rate_bank']:,.0f} → Giá quy đổi: {world_price['price_vnd_bank']:,.0f} VND\n"
+                    msg += f"🏅 Chênh lệch SJC (bank): {diff_bank_icon} {abs(diff_bank):,.0f} VND\n"
+
+                if world_price['exchange_rate_black'] is not None and world_price['price_vnd_black'] is not None:
+                    diff_black = (sjc_sell * 1_000_000) - world_price['price_vnd_black']
+                    diff_black_icon = "📈" if diff_black > 0 else "📉"
+                    msg += f"🏴 Tỷ giá chợ đen: {world_price['exchange_rate_black']:,.0f} → Giá quy đổi: {world_price['price_vnd_black']:,.0f} VND\n"
+                    msg += f"🏅 Chênh lệch SJC (chợ đen): {diff_black_icon} {abs(diff_black):,.0f} VND\n"
+
+                if world_price['price_vnd_bank'] is not None and world_price['price_vnd_black'] is not None:
+                    spread = world_price['price_vnd_black'] - world_price['price_vnd_bank']
+                    spread_icon = "📈" if spread > 0 else ("📉" if spread < 0 else "🟰")
+                    msg += f"🔁 Chợ đen - bank: {spread_icon} {spread:,.0f} VND\n"
+
+                msg += "\n"
             
             msg += "━━━━━━━━━━━━━━━━\n"
             msg += f"👑 Miếng SJC: {sjc_buy_indicator} {sjc_buy:,.3f} - {sjc_sell_indicator} {sjc_sell:,.3f}\n"

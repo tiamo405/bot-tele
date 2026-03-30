@@ -70,7 +70,7 @@ def get_gold_doji():
         "Accept": "application/json"
     }
 
-    res = requests.get(URL_DOJI, headers=headers, timeout=3)
+    res = requests.get(URL_DOJI, headers=headers)
     res.raise_for_status()
 
     # Parse JSON response
@@ -159,8 +159,9 @@ if __name__ == "__main__":
 
     # Test GoldAPI
     print("\n=== Testing GoldAPI ===")
-    price_usd = make_gold_XAUUSD_request() if make_gold_XAUUSD_request() else make_gapi_request() or make_alpha_request()
-    if price_usd:
-        print(f"Giá vàng thế giới (USD/oz): {price_usd}")
-    else:
-        print("Không thể lấy giá vàng thế giới từ cả GoldAPI và Alpha Vantage.")
+    price_usd_vang_today = make_gold_XAUUSD_request() 
+    price_usd_vang_gold_api = make_gapi_request()
+    price_usd_vang_alpha = make_alpha_request()
+    print(f"GoldAPI (vang.today): {price_usd_vang_today} USD/oz")
+    print(f"GoldAPI (goldapi.io): {price_usd_vang_gold_api} USD/oz")
+    print(f"GoldAPI (AlphaVantage): {price_usd_vang_alpha} USD/oz")
