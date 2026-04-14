@@ -2,6 +2,7 @@ import schedule
 import config
 from datetime import datetime
 from utils.scheduler import start_scheduler
+from utils.notification_registry import get_chat_ids
 
 def send_lunch_reminder(bot):
     """Send a reminder to register for lunch only on weekdays"""
@@ -12,7 +13,7 @@ def send_lunch_reminder(bot):
         return
     
     # Replace with your target chat ID (can be stored in config.py)
-    chat_ids = config.REMINDER_CHAT_IDS_LUNCH  # List of chat IDs to send reminder to
+    chat_ids = get_chat_ids("reminder_lunch")
     
     for chat_id in chat_ids:
         try:

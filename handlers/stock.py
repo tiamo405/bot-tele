@@ -48,6 +48,14 @@ def get_color_indicator(color):
     """Wrapper cho backward compatibility"""
     return get_stock_color_indicator(color)
 
+def sort_stocks_by_change_desc(symbols, stocks_info):
+    """Sắp xếp mã theo % biến đổi giảm dần, giữ các mã không có dữ liệu ở cuối"""
+    valid_symbols = [symbol for symbol in symbols if symbol in stocks_info and stocks_info[symbol] is not None]
+    missing_symbols = [symbol for symbol in symbols if symbol not in stocks_info or stocks_info[symbol] is None]
+
+    valid_symbols.sort(key=lambda symbol: stocks_info[symbol].get('change_percent', float('-inf')), reverse=True)
+    return valid_symbols + missing_symbols
+
 def send_stock_notification(bot):
     """Gửi thông báo giá chứng khoán cho các user đã đăng ký"""
     try:
@@ -81,7 +89,7 @@ def send_stock_notification(bot):
             # Lấy thông tin tất cả mã cùng lúc - tự động fallback v2->v1
             stocks_info = get_stock_info_list_smart(symbols)
             if stocks_info:
-                for symbol in symbols:
+                for symbol in sort_stocks_by_change_desc(symbols, stocks_info):
                     info = stocks_info.get(symbol)
                     if info:
                         current_price = format_price(info['current_price'])
@@ -110,7 +118,7 @@ def register_handlers(bot):
     """Đăng ký các handlers cho chức năng stock"""
     
     # Handler 1: Quản lý nhóm chứng khoán
-    @bot.message_handler(commands=['cknhom', 'stockgroup', 'nhomck'])
+    @bot.message_handler(commands=['cknhom', 'stockgroup', 'nhomck', 'ckn'])
     def stock_group_handler(message):
         """Quản lý nhóm chứng khoán: /cknhom hoặc /cknhom <tên nhóm>"""
         try:
@@ -151,7 +159,7 @@ def register_handlers(bot):
                 message_parts = [f"📂 **NHÓM: {group_name.upper()}** 📂\n"]
                 
                 if stocks_info:
-                    for symbol in symbols:
+                    for symbol in sort_stocks_by_change_desc(symbols, stocks_info):
                         info = stocks_info.get(symbol)
                         if info:
                             change_sign = "+" if info['change_percent'] >= 0 else ""
@@ -278,7 +286,7 @@ def register_handlers(bot):
                 message_parts = ["📊 **THÔNG TIN CHỨNG KHOÁN** 📊\n"]
                 not_found = []
 
-                for symbol in symbols:
+                for symbol in sort_stocks_by_change_desc(symbols, stocks_info or {}):
                     info = stocks_info.get(symbol) if stocks_info else None
                     if info:
                         change_sign = "+" if info['change_percent'] >= 0 else ""
@@ -725,7 +733,7 @@ def register_handlers(bot):
         message_parts = [f"📂 **NHÓM: {group_name.upper()}** 📂\n"]
         
         if stocks_info:
-            for symbol in symbols:
+            for symbol in sort_stocks_by_change_desc(symbols, stocks_info):
                 info = stocks_info.get(symbol)
                 if info:
                     change_sign = "+" if info['change_percent'] >= 0 else ""
@@ -779,7 +787,7 @@ def register_handlers(bot):
         bot.send_message(
             message.chat.id,
             f"📊 **QUẢN LÝ THEO DÕI CHỨNG KHOÁN** 📊\n\n"
-            f"🔔 Nhận thông báo giá mỗi 5 phút\n"
+            f"🔔 Nhận thông báo giá mỗi 2 phút\n"
             f"⏰ Thứ 2 - Thứ 6, 9:00 - 15:00\n\n"
             f"📌 Đang theo dõi: **{symbols_text}**",
             parse_mode="Markdown",
@@ -976,7 +984,7 @@ def register_handlers(bot):
         stocks_info = get_stock_info_list_smart(current_symbols)
         
         if stocks_info:
-            for symbol in current_symbols:
+            for symbol in sort_stocks_by_change_desc(current_symbols, stocks_info):
                 info = stocks_info.get(symbol)
                 if info:
                     current_price = format_price(info['current_price'])

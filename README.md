@@ -99,7 +99,7 @@ docker build --rm --force-rm -t namtiamo/tele:v1.0.0 .
 ## Cách build thông thường
 - Build images (tự động xóa intermediate containers)
 ```bash
-docker build --rm --force-rm -t namtiamo/tele:v1.0.2 .
+docker build --rm --force-rm -t namtiamo/tele:v1.0.3 .
 ```
 - Run container
 ```bash

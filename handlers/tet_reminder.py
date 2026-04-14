@@ -2,6 +2,7 @@ import schedule
 import config
 from datetime import datetime
 from utils.scheduler import start_scheduler
+from utils.notification_registry import get_chat_ids
 
 def get_days_to_tet():
     """Calculate days remaining until Lunar New Year"""
@@ -31,7 +32,7 @@ def send_tet_reminder(bot):
         
     
     # Get chat IDs from config
-    chat_ids = config.REMINDER_CHAT_IDS_TET  # List of chat IDs to send reminder to
+    chat_ids = get_chat_ids("reminder_tet")
     
     for chat_id in chat_ids:
         try:

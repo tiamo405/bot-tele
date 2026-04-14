@@ -31,6 +31,14 @@ def register_handlers(bot):
             "🌏 **/vangtg** - Xem giá vàng thế giới\n"
             "🪙 **/bac** - Xem giá bạc\n"
             "💱 **/tigia usd** - Xem tỷ giá USD bank + chợ đen\n\n"
+            "📣 **/notif** - Mở menu quản lý thông báo bằng nút bấm\n"
+            "📋 **/notiflist** - Xem danh sách kênh thông báo\n"
+            "🔎 **/notiflookup** - Mở menu tra cứu chat ID / kênh đang gắn\n"
+            "➕ **/notifadd** - Mở menu thêm chat ID vào kênh\n"
+            "✏️ **/notifsetid <channel> <chat_id>** - Gắn chat ID vào một kênh\n"
+            "➖ **/notifremove <channel> <chat_id>** - Xóa chat ID khỏi một kênh\n"
+            "🔍 **/notifwhere <chat_id>** - Xem chat ID đang dùng cho kênh nào\n"
+            "🔒 Chỉ `ID_ADMIN` mới được dùng các lệnh này\n\n"
             "🤖 **TRỢ LÝ AI:**\n"
             "• Hỏi bất kỳ câu hỏi nào: `/ai câu hỏi của bạn`\n"
             "• Giải thích khái niệm, viết code, dịch thuật...\n"
@@ -60,4 +68,4 @@ def register_handlers(bot):
             "• Tự động kiểm tra xe đã đăng ký lúc 9:00 mỗi ngày\n\n"
             "✨ **Chúc bạn sử dụng bot vui vẻ!**"
         )
-        bot.reply_to(message, help_text, parse_mode="Markdown")
+        bot.reply_to(message, help_text)

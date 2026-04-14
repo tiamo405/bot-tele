@@ -6,6 +6,7 @@ from logs.logs import setup_logger
 import schedule
 from utils.scheduler import start_scheduler
 import config
+from utils.notification_registry import get_chat_ids
 
 silver_log = setup_logger('silver.log')
 
@@ -35,7 +36,7 @@ def send_silver_price(bot, chat_id):
 def send_scheduled_silver_price(bot):
     """Send silver price to scheduled chat IDs"""
     silver_log.info(f"Scheduled silver price update started")
-    for chat_id in config.SCHEDULE_SILVER_CHAT_IDS:
+    for chat_id in get_chat_ids("schedule_silver"):
         try:
             silver_data = get_silver()
             message = format_silver_message(silver_data)
@@ -55,7 +56,7 @@ def register_handlers(bot):
         send_silver_price(bot, message.chat.id)
     
     # Setup scheduled task at 9:00 AM (if needed)
-    if hasattr(config, 'SCHEDULE_SILVER_CHAT_IDS') and config.SCHEDULE_SILVER_CHAT_IDS:
+    if get_chat_ids("schedule_silver"):
         schedule.every().day.at("09:00").do(lambda: send_scheduled_silver_price(bot))
         start_scheduler()
         print("Scheduled silver price update at 9:00 AM daily")

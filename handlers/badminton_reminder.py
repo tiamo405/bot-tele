@@ -2,6 +2,7 @@ import schedule
 import config
 from datetime import datetime
 from utils.scheduler import start_scheduler
+from utils.notification_registry import get_chat_ids
 
 def send_badminton_reminder(bot):
     """Send a reminder to register for badminton only on weekdays"""
@@ -15,7 +16,7 @@ def send_badminton_reminder(bot):
         # return
     
     # Replace with your target chat ID (can be stored in config.py)
-    chat_ids = config.REMINDER_CHAT_IDS_BADMINTON  # List of chat IDs to send reminder to
+    chat_ids = get_chat_ids("reminder_badminton")
     
     for chat_id in chat_ids:
         try:
@@ -25,10 +26,10 @@ def send_badminton_reminder(bot):
 
 def register_handlers(bot):
     """Register the badminton reminder scheduler"""
-    # Schedule the reminder for 21:00 every Sunday
-    schedule.every().sunday.at("21:00").do(send_badminton_reminder, bot)
+    # Schedule the reminder for 21:00 every Wednesday thứ 4
+    schedule.every().wednesday.at("21:00").do(send_badminton_reminder, bot)
     
     # Start the global scheduler thread
     start_scheduler()
-    
-    print("Badminton reminder scheduled for 21:00 on Sundays")
+
+    print("Badminton reminder scheduled for 21:00 on Wednesdays")

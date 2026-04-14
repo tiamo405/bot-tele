@@ -10,6 +10,7 @@ from datetime import datetime
 import schedule
 from utils.scheduler import start_scheduler
 import config
+from utils.notification_registry import get_chat_ids
 
 aug_log = setup_logger('aug.log')
 
@@ -182,7 +183,7 @@ def send_gold_price(bot, chat_id, url, company_name):
 def send_scheduled_gold_prices(bot):
     """Send simplified gold prices to scheduled chat IDs"""
     aug_log.info(f"Scheduled gold price update started at 9:00 AM")
-    for chat_id in config.SCHEDULE_AUG_CHAT_IDS:
+    for chat_id in get_chat_ids("schedule_aug"):
         try:
             # Get SJC and DOJI prices
             gold_sjc = get_gold(URL_SJC)
@@ -393,7 +394,7 @@ def register_handlers(bot):
             bot.send_message(message.chat.id, f"❌ Lỗi khi lấy giá vàng thế giới: {str(e)}")
     
     # Setup scheduled task at 9:00 AM
-    if config.SCHEDULE_AUG_CHAT_IDS:
+    if get_chat_ids("schedule_aug"):
         schedule.every().day.at("09:00").do(lambda: send_scheduled_gold_prices(bot))
         start_scheduler()
         print("Scheduled gold price update at 9:00 AM daily")
